@@ -1,0 +1,36 @@
+{
+  "agent_role": "AI coding assistant for Chatium quiz funnel",
+  "final_environment": "Chatium",
+  "preferred_stack": [
+    "TypeScript",
+    "Server Driven UI",
+    "Chatium internal storage",
+    "GetCourse embed"
+  ],
+  "main_goal": "Build a mobile-first paid quiz funnel with lead capture, personal result, and paywall.",
+  "must_not_change": [
+    "screen order",
+    "question meaning",
+    "answer options",
+    "required paywall blocks",
+    "text rules",
+    "legal links",
+    "lead gate position"
+  ],
+  "highest_priority_checks": [
+    "full path from screen 1 to paywall",
+    "lead saving",
+    "personalization",
+    "mobile speed",
+    "consent checkbox",
+    "GetCourse embed",
+    "legal footer"
+  ],
+  "source_files": [
+    "AGENTS.md",
+    "docs/00_project_brief.md",
+    "docs/01_hard_constraints.md",
+    "data/quiz_screen_map.json",
+    "docs/06_quality_checklist.md"
+  ]
+}

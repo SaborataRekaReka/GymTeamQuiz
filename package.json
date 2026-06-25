@@ -1,0 +1,14 @@
+{
+  "name": "saboratarekareka",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chatium quiz funnel for Usmanova Fit test task. Source, agent instructions and implementation notes.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint:content": "node scripts/check-content-rules.mjs",
+    "check": "npm run typecheck && npm run lint:content"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
