@@ -1,0 +1,2568 @@
+Chatium/
+  api/
+    leads/
+      upsert.ts
+  components/
+    Button.vue
+    GetCourseForm.vue
+    LeadGateScreen.vue
+    LoaderScreen.vue
+    OptionButton.vue
+    PaywallIncludeIcon.vue
+    PaywallSafetyIcon.vue
+    PaywallScreen.vue
+    QuestionScreen.vue
+    QuizHeader.vue
+    ResultInputIcon.vue
+    ResultProgramIcon.vue
+    ResultScreen.vue
+    TrustScreen.vue
+  dev/
+    index.html
+    main.ts
+    vite.config.ts
+  index.tsx
+  pages/
+    QuizPage.vue
+  README.md
+  shared/
+    quizPersist.ts
+    saveLead.ts
+    utm.ts
+  tables/
+    leads.table
+
+=== Chatium/api/leads/upsert.ts ===
+/**
+ * Серверный API-роут Chatium: upsert лида квиза.
+ *
+ * Идемпотентность по sessionId: повторный вызов с тем же sessionId
+ * обновляет существующую запись, а не создаёт дубль.
+ *
+ * ВНИМАНИЕ ПО ПЛАТФОРМЕ:
+ * Точная форма роутера (`app.post(...).body(...).handle(...)`),
+ * методы таблицы (`Leads.findOneBy`, `Leads.create`, `Leads.update`)
+ * и импорт таблицы взяты из примеров ассистента Chatium.
+ * Перед публикацией подтвердите у Chatium точные сигнатуры для вашего workspace.
+ */
+import Leads from '../../tables/leads.table'
+
+export const leadsUpsertRoute = app
+  .post('/')
+  .body((s) => ({
+    sessionId: s.string(),
+    name: s.string().optional(),
+    email: s.string().optional(),
+    consentAccepted: s.boolean().optional(),
+    answers: s.any().optional(),
+    height: s.number().optional(),
+    currentWeight: s.number().optional(),
+    targetWeight: s.number().optional(),
+    resultType: s.string().optional(),
+    calorieNorm: s.number().optional(),
+    macros: s.any().optional(),
+    utm: s.any().optional(),
+    status: s.string().optional(),
+  }))
+  .handle(async (ctx, req) => {
+    const { sessionId, ...fields } = req.body
+
+    if (!sessionId || !sessionId.trim()) {
+      return { ok: false, error: 'sessionId is required' }
+    }
+
+    const existing = await Leads.findOneBy(ctx, { sessionId })
+
+    const lead = existing
+      ? await Leads.update(ctx, { id: existing.id, ...fields, status: fields.status ?? existing.status })
+      : await Leads.create(ctx, { sessionId, status: fields.status ?? 'draft', ...fields })
+
+    return { ok: true, leadId: lead.id, created: !existing }
+  })
+
+
+=== Chatium/components/Button.vue ===
+<template>
+  <button
+    type="button"
+    :disabled="disabled"
+    :style="buttonStyle"
+    @click="$emit('click')"
+  >
+    {{ label }}
+  </button>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const props = defineProps<{
+  label: string
+  variant?: 'primary' | 'secondary'
+  disabled?: boolean
+}>()
+
+defineEmits<{ click: [] }>()
+
+const buttonStyle = computed(() => {
+  const primary = props.variant !== 'secondary'
+  return {
+    width: '100%',
+    minHeight: '56px',
+    borderRadius: 'var(--radius-lg)',
+    border: '1px solid transparent',
+    background: primary ? 'var(--primary)' : 'var(--primary-soft)',
+    color: primary ? '#fff' : 'var(--primary)',
+    padding: '14px 16px',
+    fontSize: '17px',
+    lineHeight: '22px',
+    fontWeight: 700,
+    cursor: props.disabled ? 'not-allowed' : 'pointer',
+    opacity: props.disabled ? 0.6 : 1,
+    transition: 'background 120ms ease',
+  }
+})
+</script>
+
+
+=== Chatium/components/GetCourseForm.vue ===
+<template>
+  <div ref="containerRef" class="paywall-getcourse-slot">
+    <!-- Если форма GetCourse ещё не подключена в index.tsx, показываем заглушку. -->
+    <div v-if="!moved" class="paywall-getcourse-placeholder" :style="placeholderStyle">
+      Здесь будет форма оформления заказа
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+
+/**
+ * Переносит (НЕ клонирует) скрытый узел #gcPaywallForm из index.tsx
+ * в видимую область пейволла. При уходе с экрана возвращает узел обратно,
+ * чтобы iframe формы GetCourse не перезагружался.
+ */
+const containerRef = ref<HTMLDivElement | null>(null)
+const moved = ref(false)
+
+const placeholderStyle = {
+  border: '1px dashed var(--border)',
+  borderRadius: 'var(--radius-lg)',
+  padding: '16px',
+  color: 'var(--text-muted)',
+  fontSize: '14px',
+  lineHeight: '20px',
+  background: 'var(--surface)',
+}
+
+onMounted(() => {
+  const form = document.getElementById('gcPaywallForm')
+  if (form && containerRef.value && form.children.length > 0) {
+    containerRef.value.appendChild(form)
+    form.style.display = 'block'
+    moved.value = true
+  }
+})
+
+onBeforeUnmount(() => {
+  const form = document.getElementById('gcPaywallForm')
+  const storage = document.getElementById('allGetcourseForms')
+  if (form && storage) {
+    storage.appendChild(form)
+    form.style.display = 'none'
+  }
+})
+</script>
+
+
+=== Chatium/components/LeadGateScreen.vue ===
+<template>
+  <div class="quiz-card">
+    <div class="quiz-lead-gate-enter">
+      <div class="quiz-stack">
+        <QuizHeader :progress-percent="progressPercent" :on-back="onBack" />
+
+        <h1 v-if="title" class="quiz-title">{{ title }}</h1>
+        <p v-if="text" class="quiz-subtitle">{{ text }}</p>
+
+        <label :style="fieldWrapStyle">
+          <div :style="fieldBoxStyle">
+            <input
+              type="text"
+              name="name"
+              autocomplete="name"
+              placeholder="Ваше имя"
+              :value="value.name"
+              :style="inputStyle"
+              @input="onNameInput(($event.target as HTMLInputElement).value)"
+            />
+          </div>
+        </label>
+
+        <label :style="fieldWrapStyle">
+          <div :style="fieldBoxStyle">
+            <input
+              type="email"
+              name="email"
+              autocomplete="email"
+              placeholder="Ваша почта"
+              :value="value.email"
+              :style="inputStyle"
+              @input="onEmailInput(($event.target as HTMLInputElement).value)"
+            />
+          </div>
+        </label>
+
+        <label :style="checkboxWrapStyle">
+          <input
+            type="checkbox"
+            :checked="value.consentAccepted"
+            :style="checkboxStyle"
+            @change="onConsentToggle(($event.target as HTMLInputElement).checked)"
+          />
+          <span>Я согласна на обработку персональных данных</span>
+        </label>
+
+        <div class="quiz-legal">
+          <a class="quiz-legal-link" :href="legalLinks.offer" target="_blank" rel="noreferrer">Оферта</a>
+          {{ ' · ' }}
+          <a class="quiz-legal-link" :href="legalLinks.privacy" target="_blank" rel="noreferrer">Политика конфиденциальности</a>
+          {{ ' · ' }}
+          <a class="quiz-legal-link" :href="legalLinks.personal_data" target="_blank" rel="noreferrer">Согласие на обработку персональных данных</a>
+        </div>
+
+        <div v-for="issue in issues" :key="issue.field" class="quiz-error">{{ issue.message }}</div>
+
+        <div class="quiz-sticky-cta">
+          <div class="quiz-actions">
+            <Button label="Открыть результат" @click="onNext" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import QuizHeader from './QuizHeader.vue'
+import Button from './Button.vue'
+import type { LeadGateAnswer, LegalLinks, ValidationIssue } from '../../src/quiz/types'
+
+const props = defineProps<{
+  title?: string
+  text?: string
+  value: LeadGateAnswer
+  legalLinks: LegalLinks
+  progressPercent: number
+  issues: ValidationIssue[]
+  onNameInput: (value: string) => void
+  onEmailInput: (value: string) => void
+  onConsentToggle: (checked: boolean) => void
+  onNext: () => void
+  onBack: () => void
+}>()
+
+const fieldWrapStyle = { display: 'flex', flexDirection: 'column' as const, gap: '6px' }
+const fieldBoxStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-lg)',
+  background: 'var(--surface)',
+  minHeight: '56px',
+  padding: '0 16px',
+}
+const inputStyle = {
+  border: 'none',
+  outline: 'none',
+  width: '100%',
+  fontSize: '17px',
+  background: 'transparent',
+}
+const checkboxWrapStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px',
+  fontSize: '12px',
+  lineHeight: '16px',
+  color: 'var(--text-muted)',
+}
+const checkboxStyle = computed(() => ({
+  width: '16px',
+  height: '16px',
+  margin: 0,
+  flexShrink: 0,
+  cursor: 'pointer',
+  appearance: 'none' as const,
+  WebkitAppearance: 'none' as const,
+  border: '1px solid var(--primary)',
+  borderRadius: '999px',
+  background: props.value.consentAccepted ? 'var(--primary)' : '#FFF',
+  boxShadow: props.value.consentAccepted ? 'inset 0 0 0 4px #FFF' : 'none',
+}))
+</script>
+
+
+=== Chatium/components/LoaderScreen.vue ===
+<template>
+  <div class="quiz-card">
+    <div class="quiz-stack">
+      <QuizHeader :progress-percent="progressPercent" :on-back="onBack" />
+
+      <h1 v-if="title" class="quiz-title">{{ title }}</h1>
+      <p v-if="text" class="quiz-subtitle">{{ text }}</p>
+
+      <div v-if="hasPlanSteps" class="quiz-plan-loader" aria-label="Сбор персонального плана">
+        <div class="quiz-plan-indicator" aria-hidden="true">
+          <span class="quiz-plan-ring" />
+          <span class="quiz-plan-core">
+            <span class="quiz-plan-percent">
+              <span class="quiz-plan-percent-value is-one">24%</span>
+              <span class="quiz-plan-percent-value is-two">57%</span>
+              <span class="quiz-plan-percent-value is-three">86%</span>
+              <span class="quiz-plan-percent-value is-four">100%</span>
+            </span>
+          </span>
+        </div>
+
+        <div class="quiz-plan-status-list">
+          <div
+            v-for="(step, index) in steps"
+            :key="step"
+            :class="index === steps.length - 1 ? 'quiz-plan-status is-last' : 'quiz-plan-status'"
+            :style="{ '--step-delay': `${index * 1000}ms` }"
+          >
+            <span class="quiz-plan-status-dot" aria-hidden="true" />
+            <span>{{ step }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="quiz-hero">
+        <p class="quiz-subtitle">Анализируем ваши ответы и готовим персональные рекомендации</p>
+      </div>
+
+      <div v-if="!hasPlanSteps" class="quiz-actions">
+        <Button :label="buttonText || 'Продолжить'" @click="onNext" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import QuizHeader from './QuizHeader.vue'
+import Button from './Button.vue'
+
+const props = defineProps<{
+  title?: string
+  text?: string
+  steps: string[]
+  buttonText?: string
+  progressPercent: number
+  onNext: () => void
+  onBack: () => void
+}>()
+
+const hasPlanSteps = computed(() => props.steps.length > 0)
+</script>
+
+
+=== Chatium/components/OptionButton.vue ===
+<template>
+  <button
+    type="button"
+    :aria-pressed="selected"
+    :class="['quiz-option-button', { 'is-selected': selected }]"
+    :style="rootStyle"
+    @click="$emit('click')"
+  >
+    <span
+      v-if="hasIcon && isSvgIcon"
+      class="quiz-option-illus"
+      :style="{ '--opt-icon': `url(${icon})` }"
+      aria-hidden="true"
+    />
+    <img v-if="hasIcon && !isSvgIcon" class="quiz-option-photo" :src="icon" alt="" aria-hidden="true" />
+
+    <span class="quiz-option-text">{{ label }}</span>
+
+    <span class="quiz-option-icon" :style="iconStyle">
+      <span v-if="selected" class="quiz-option-check-icon" aria-hidden="true" />
+    </span>
+  </button>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const props = defineProps<{
+  label: string
+  selected: boolean
+  icon?: string
+}>()
+
+defineEmits<{ click: [] }>()
+
+const hasIcon = computed(() => Boolean(props.icon))
+const isSvgIcon = computed(() => hasIcon.value && props.icon!.toLowerCase().endsWith('.svg'))
+
+const rootStyle = computed(() => ({
+  width: '100%',
+  textAlign: 'left' as const,
+  minHeight: '72px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '14px',
+  border: props.selected ? '1px solid var(--border-strong)' : '1px solid var(--border)',
+  background: props.selected ? 'var(--primary-soft)' : 'var(--surface)',
+  borderRadius: 'var(--radius-lg)',
+  padding: '16px 18px',
+  fontSize: '17px',
+  lineHeight: '23px',
+  fontWeight: 650,
+  cursor: 'pointer',
+  transition: 'transform 80ms ease, border 120ms ease, background 120ms ease',
+}))
+
+const iconStyle = computed(() => ({
+  borderColor: props.selected ? 'var(--primary)' : 'var(--border)',
+  color: props.selected ? 'var(--primary)' : 'var(--text-soft)',
+}))
+</script>
+
+
+=== Chatium/components/PaywallIncludeIcon.vue ===
+<template>
+  <svg v-if="index === 0" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z" /><path d="M9 9h7M9 13h7M9 17h4" /></svg>
+  <svg v-else-if="index === 1" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19l5-5 4 4 5-9" /><circle cx="10" cy="14" r="1" /><circle cx="14" cy="18" r="1" /></svg>
+  <svg v-else-if="index === 2" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v7a5 5 0 0 0 10 0V3" /><path d="M12 15v6" /><path d="M8 21h8" /></svg>
+  <svg v-else-if="index === 3" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>
+  <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.5-7 10-7 10z" /></svg>
+</template>
+
+<script setup lang="ts">
+defineProps<{ index: number }>()
+</script>
+
+
+=== Chatium/components/PaywallSafetyIcon.vue ===
+<template>
+  <svg v-if="index === 0" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V8a4 4 0 0 1 8 0v2" /><circle cx="12" cy="15" r="1" /></svg>
+  <svg v-else-if="index === 1" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
+  <svg v-else-if="index === 2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M8 12l3 3 5-6" /></svg>
+  <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v4h4" /><path d="M10 13h5M10 16h5" /></svg>
+</template>
+
+<script setup lang="ts">
+defineProps<{ index: number }>()
+</script>
+
+
+=== Chatium/components/PaywallScreen.vue ===
+<template>
+  <div class="quiz-card">
+    <div class="quiz-stack">
+      <QuizHeader :progress-percent="progressPercent" :on-back="onBack" />
+
+      <div class="paywall">
+        <section class="paywall-hero">
+          <div class="paywall-hero-photo">
+            <img
+              v-if="!isHeroBroken"
+              src="/assets/quiz/result/usmanova_result.png"
+              alt="Екатерина Усманова"
+              loading="lazy"
+              decoding="async"
+              @error="isHeroBroken = true"
+            />
+          </div>
+          <div class="paywall-hero-copy">
+            <h2 class="paywall-hero-title">{{ heading }}</h2>
+            <p class="paywall-hero-sub">Получите доступ к программам Кати Усмановой, помощнику по питанию и тренировкам, которые подходят под вашу цель.</p>
+            <p class="paywall-hero-orientir">
+              <span :style="orientirIconWrapStyle" aria-hidden="true">
+                <svg viewBox="0 0 24 24" :style="orientirSvgStyle">
+                  <circle cx="12" cy="12" r="7" />
+                  <circle cx="12" cy="12" r="2.5" />
+                  <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+                </svg>
+              </span>
+              <span>{{ orientir }}</span>
+            </p>
+            <div class="paywall-chips">
+              <span class="paywall-chip">Программы</span>
+              <span class="paywall-chip">Питание</span>
+              <span class="paywall-chip">Под вашу цель</span>
+            </div>
+            <button type="button" class="paywall-cta" @click="scrollTo(tariffsRef)">Выбрать доступ</button>
+          </div>
+        </section>
+
+        <section class="paywall-section paywall-proof">
+          <h3 class="paywall-h">С Катей уже тренируются сотни тысяч женщин</h3>
+          <div class="paywall-proof-top">
+            <img
+              v-if="!isProofBroken"
+              class="paywall-proof-photo"
+              src="/assets/quiz/hero/hero.jpg"
+              alt="Екатерина Усманова"
+              loading="lazy"
+              decoding="async"
+              @error="isProofBroken = true"
+            />
+            <span v-else class="paywall-proof-photo" aria-hidden="true" />
+            <div class="paywall-proof-count">
+              <strong>580 000+</strong>
+              <span>женщин занимаются по программам Кати Усмановой</span>
+            </div>
+          </div>
+          <div class="paywall-facts">
+            <span v-for="fact in PAYWALL_FACTS" :key="fact" class="paywall-fact">
+              <span class="paywall-fact-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10" /></svg></span>
+              <span>{{ fact }}</span>
+            </span>
+          </div>
+          <div class="paywall-gallery-head">Результаты участниц</div>
+          <p class="paywall-gallery-hint">Реальные фотографии участниц программ Кати Усмановой.</p>
+          <div class="result-programs-carousel">
+            <div ref="galleryListRef" class="paywall-gallery" @scroll="syncGalleryArrows">
+              <template v-for="(src, index) in PAYWALL_GALLERY" :key="src">
+                <div v-if="!isGalleryBroken(index)" class="paywall-gallery-item">
+                  <span class="paywall-gallery-badge">До и после</span>
+                  <img :src="src" alt="Результат участницы" loading="lazy" decoding="async" @error="markGalleryBroken(index)" />
+                </div>
+              </template>
+            </div>
+            <button
+              type="button"
+              :class="showGalleryLeftArrow ? 'result-programs-arrow is-left is-visible' : 'result-programs-arrow is-left'"
+              aria-label="Прокрутить истории влево"
+              @click="scrollGallery(-1)"
+            >
+              <span class="result-programs-arrow-icon" aria-hidden="true" />
+            </button>
+            <button type="button" class="result-programs-arrow" aria-label="Прокрутить истории вправо" @click="scrollGallery(1)">
+              <span class="result-programs-arrow-icon" aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+
+        <section ref="tariffsRef" class="paywall-section">
+          <h3 class="paywall-h">Выберите формат доступа</h3>
+          <p class="paywall-sub">Подписку можно отключить в личном кабинете.</p>
+          <div class="paywall-tariffs">
+            <div
+              v-for="tariff in tariffs"
+              :key="tariff.name"
+              :class="['paywall-tariff', { 'is-popular': tariff.name === 'Популярно', 'is-selected': selectedTariff === tariff.name }]"
+            >
+              <div class="paywall-tariff-head">
+                <span class="paywall-tariff-name">{{ tariff.name }}</span>
+                <span v-if="tariff.name === 'Популярно'" class="paywall-badge is-soft">Рекомендуем</span>
+                <span v-if="tariff.name === 'Хит продаж'" class="paywall-badge">Хит продаж</span>
+              </div>
+              <div class="paywall-tariff-price">
+                <span class="paywall-price-now">{{ tariff.price }} руб</span>
+                <span class="paywall-price-old">{{ tariff.old_price }} руб</span>
+              </div>
+              <div class="paywall-tariff-period">Период: {{ tariff.period }}</div>
+              <div v-if="tariff.renewal" class="paywall-tariff-renewal">{{ tariff.renewal }}</div>
+              <div v-if="PAYWALL_TARIFF_NOTE[tariff.name]" class="paywall-tariff-note">{{ PAYWALL_TARIFF_NOTE[tariff.name] }}</div>
+              <button type="button" class="paywall-tariff-btn" @click="onSelectTariff(tariff.name)">Выбрать тариф</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="paywall-section">
+          <h3 class="paywall-h">Что входит в доступ</h3>
+          <p class="paywall-sub">Внутри программы и инструменты, которые помогут начать по вашему маршруту.</p>
+          <div class="paywall-includes">
+            <article v-for="(item, index) in PAYWALL_INCLUDES" :key="item.title" class="paywall-include">
+              <span class="paywall-include-icon" aria-hidden="true"><PaywallIncludeIcon :index="index" /></span>
+              <div>
+                <h4 class="paywall-include-title">{{ item.title }}</h4>
+                <p class="paywall-include-text">{{ item.text }}</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="paywall-section">
+          <h3 class="paywall-h">Программы, которые подойдут вам</h3>
+          <p class="paywall-sub">Мы выбрали их по вашей цели, зонам и формату тренировок.</p>
+          <div class="result-programs-carousel">
+            <div ref="programsListRef" class="result-programs-list">
+              <article v-for="program in programs" :key="program.id" class="result-program" :draggable="false">
+                <div class="result-program-image-wrap" aria-hidden="true">
+                  <img
+                    v-if="!isProgramImageBroken(program.id)"
+                    class="result-program-image"
+                    :src="program.localImage"
+                    :alt="program.title"
+                    :draggable="false"
+                    loading="lazy"
+                    decoding="async"
+                    data-fallback="0"
+                    @error="onProgramImageError($event, program)"
+                  />
+                  <span :class="isProgramImageBroken(program.id) ? 'result-program-fallback' : 'result-program-fallback is-hidden'">
+                    <span class="result-program-fallback-icon"><ResultProgramIcon :title="program.title" /></span>
+                    <span class="result-program-fallback-title">{{ program.title }}</span>
+                  </span>
+                </div>
+                <div class="result-program-copy">
+                  <div class="result-program-badges">
+                    <span class="result-program-badge is-type">{{ program.type }}</span>
+                  </div>
+                  <h4 class="result-program-title">{{ program.title }}</h4>
+                  <p class="result-program-reason">{{ program.description }}</p>
+                </div>
+              </article>
+            </div>
+            <button type="button" class="result-programs-arrow is-left is-visible" aria-label="Прокрутить программы влево" @click="scrollPrograms(-1)">
+              <span class="result-programs-arrow-icon" aria-hidden="true" />
+            </button>
+            <button type="button" class="result-programs-arrow" aria-label="Прокрутить программы вправо" @click="scrollPrograms(1)">
+              <span class="result-programs-arrow-icon" aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+
+        <section ref="formRef" class="paywall-section">
+          <h3 class="paywall-h">Оформление доступа</h3>
+          <p class="paywall-sub">Заполните форму ниже, чтобы перейти к оплате.</p>
+          <GetCourseForm />
+        </section>
+
+        <section class="paywall-section">
+          <h3 class="paywall-h">Оплата и доступ безопасны</h3>
+          <div class="paywall-safety">
+            <div v-for="(item, index) in PAYWALL_SAFETY" :key="item.title" class="paywall-safe">
+              <span class="paywall-safe-icon" aria-hidden="true"><PaywallSafetyIcon :index="index" /></span>
+              <h4 class="paywall-safe-title">{{ item.title }}</h4>
+              <p class="paywall-safe-text">{{ item.text }}</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="paywall-section">
+          <h3 class="paywall-h">Частые вопросы</h3>
+          <div class="paywall-faq">
+            <details v-for="item in PAYWALL_FAQ" :key="item.q" class="paywall-faq-item">
+              <summary>{{ item.q }}</summary>
+              <div class="paywall-faq-answer">{{ item.a }}</div>
+            </details>
+          </div>
+        </section>
+
+        <footer class="paywall-footer">
+          <div class="paywall-requisites">
+            <strong>ООО «Онлайн Фитнес»</strong>
+            <span>ИНН 7734434533 · КПП 773401001 · ОГРН 1207700175209</span>
+            <span>Москва, улица Щукинская, дом 2</span>
+            <span>Служба заботы: help@usmanovasport.ru</span>
+          </div>
+          <div class="quiz-legal">
+            <a class="quiz-legal-link" :href="legalLinks.offer" target="_blank" rel="noreferrer">Оферта</a>
+            {{ ' · ' }}
+            <a class="quiz-legal-link" :href="legalLinks.privacy" target="_blank" rel="noreferrer">Политика конфиденциальности</a>
+            {{ ' · ' }}
+            <a class="quiz-legal-link" :href="legalLinks.personal_data" target="_blank" rel="noreferrer">Согласие на обработку персональных данных</a>
+          </div>
+        </footer>
+      </div>
+
+      <div class="quiz-actions">
+        <Button label="Назад" variant="secondary" @click="onBack" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, reactive, ref } from 'vue'
+import QuizHeader from './QuizHeader.vue'
+import Button from './Button.vue'
+import GetCourseForm from './GetCourseForm.vue'
+import PaywallIncludeIcon from './PaywallIncludeIcon.vue'
+import PaywallSafetyIcon from './PaywallSafetyIcon.vue'
+import ResultProgramIcon from './ResultProgramIcon.vue'
+import type { LegalLinks, ResultProgram, TariffConfig } from '../../src/quiz/types'
+
+const props = defineProps<{
+  topFocus?: string
+  requiredBlocks: string[]
+  tariffs: TariffConfig[]
+  legalLinks: LegalLinks
+  name: string
+  currentWeight: number
+  targetWeight: number
+  goal: string
+  zones: string[]
+  trainingPlace: string
+  programs: ResultProgram[]
+  currentImage: string
+  targetImage: string
+  progressPercent: number
+  onBack: () => void
+}>()
+
+const PAYWALL_INCLUDES = [
+  { title: 'Программы Кати Усмановой', text: 'Тренировки для дома и зала под разные цели: стройность, тонус, живот, талия, ягодицы и всё тело.' },
+  { title: 'Маршрут под вашу цель', text: 'Начните с программ, которые подходят под ваши ответы в квизе.' },
+  { title: 'Помощник по питанию', text: 'Помогает проще ориентироваться в питании без жёстких диет и сложных таблиц.' },
+  { title: 'Каталог тренировок', text: 'Можно менять направление и постепенно подключать новые программы.' },
+  { title: 'Бережный старт', text: 'Подходит, если вы начинаете с нуля или возвращаетесь после перерыва.' },
+]
+
+const PAYWALL_FACTS = [
+  'Вице-чемпионка мира и чемпионка России по фитнес-бикини',
+  'Профессиональный тренер с опытом более 15 лет',
+  'Автор первых в России масштабных марафонов стройности',
+  'Программы для дома и зала, подход без перегруза',
+]
+
+const PAYWALL_GALLERY = [
+  '/assets/quiz/trust/gallery/student-01.jpg',
+  '/assets/quiz/trust/gallery/student-02.jpg',
+  '/assets/quiz/trust/gallery/student-03.jpg',
+  '/assets/quiz/trust/gallery/student-04.jpg',
+  '/assets/quiz/trust/gallery/student-05.jpg',
+  '/assets/quiz/trust/gallery/student-06.jpg',
+  '/assets/quiz/trust/gallery/student-07.jpg',
+  '/assets/quiz/trust/gallery/student-08.jpg',
+  '/assets/quiz/trust/gallery/student-09.jpg',
+  '/assets/quiz/trust/gallery/student-10.jpg',
+  '/assets/quiz/trust/gallery/student-11.jpg',
+  '/assets/quiz/trust/gallery/student-12.jpg',
+  '/assets/quiz/trust/gallery/student-13.jpg',
+  '/assets/quiz/trust/gallery/student-14.jpg',
+]
+
+const PAYWALL_SAFETY = [
+  { title: 'Безопасная оплата', text: 'Платёж проходит через защищённую форму.' },
+  { title: 'Доступ после оплаты', text: 'После оформления вы получите доступ к программам.' },
+  { title: 'Подписку можно отключить', text: 'Отключение доступно в личном кабинете.' },
+  { title: 'Юридические документы', text: 'Оферта и правила обработки данных доступны ниже.' },
+]
+
+const PAYWALL_FAQ = [
+  { q: 'Что входит в подписку?', a: 'В подписку входят программы Кати Усмановой, каталог тренировок и помощник по питанию.' },
+  { q: 'Подойдёт ли мне, если я начинаю с нуля?', a: 'Да. Можно начать с мягких программ и постепенно привыкать к нагрузке.' },
+  { q: 'Где проходят тренировки?', a: 'В подписке есть программы для дома и зала. Подборка учитывает выбранный вами формат.' },
+  { q: 'Как работает автопродление?', a: 'После пробного периода или оплаченного срока подписка продлевается автоматически по условиям выбранного тарифа.' },
+  { q: 'Можно ли отключить подписку?', a: 'Да. Подписку можно отключить в личном кабинете.' },
+  { q: 'Когда я получу доступ?', a: 'После оплаты доступ открывается через систему оформления заказа.' },
+  { q: 'Что делать, если нагрузка покажется сложной?', a: 'Начинайте с мягких программ и выбирайте посильный темп. План используется как ориентир, а не как жёсткое обязательство.' },
+]
+
+const PAYWALL_TARIFF_NOTE: Record<string, string> = {
+  'Лёгкий старт': 'Подходит, чтобы попробовать программы и начать без долгого обязательства.',
+  'Популярно': 'Оптимальный вариант, чтобы втянуться и пройти первые программы.',
+  'Хит продаж': 'Для спокойной работы над результатом без спешки.',
+}
+
+const orientirIconWrapStyle = {
+  width: '18px',
+  height: '18px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '999px',
+  background: 'rgba(255,255,255,0.82)',
+  color: 'var(--primary)',
+  flexShrink: 0,
+}
+const orientirSvgStyle = {
+  width: '12px',
+  height: '12px',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2.1,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+}
+
+const selectedTariff = ref('Популярно')
+const isHeroBroken = ref(false)
+const isProofBroken = ref(false)
+
+const tariffsRef = ref<HTMLElement | null>(null)
+const formRef = ref<HTMLElement | null>(null)
+const programsListRef = ref<HTMLDivElement | null>(null)
+const galleryListRef = ref<HTMLDivElement | null>(null)
+
+const safeName = computed(() => (props.name && props.name.trim() ? props.name.trim() : ''))
+const current = computed(() => (Number.isFinite(props.currentWeight) && props.currentWeight > 0 ? props.currentWeight : 0))
+const target = computed(() =>
+  Number.isFinite(props.targetWeight) && props.targetWeight > 0 ? props.targetWeight : current.value,
+)
+const isLoss = computed(() => current.value > 0 && target.value < current.value)
+const isGain = computed(() => current.value > 0 && target.value > current.value)
+
+const heading = computed(() => (safeName.value ? `${safeName.value}, ваш план готов` : 'Ваш план готов'))
+const orientir = computed(() =>
+  isLoss.value
+    ? `Похудеть до ${target.value} кг и сохранить форму`
+    : isGain.value
+      ? `Набрать до ${target.value} кг и сохранить форму`
+      : `Сохранить вес ${target.value} кг и улучшить форму`,
+)
+
+function scrollTo(element: HTMLElement | null) {
+  if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+function onSelectTariff(name: string) {
+  selectedTariff.value = name
+  scrollTo(formRef.value)
+}
+function scrollPrograms(direction: -1 | 1) {
+  if (!programsListRef.value) return
+  const shift = Math.max(220, Math.round(programsListRef.value.clientWidth * 0.82))
+  programsListRef.value.scrollBy({ left: shift * direction, behavior: 'smooth' })
+}
+
+const showGalleryLeftArrow = ref(false)
+function getGallerySnapStep(): number {
+  if (!galleryListRef.value) return 0
+  const firstCard = galleryListRef.value.querySelector<HTMLElement>('.paywall-gallery-item')
+  if (!firstCard) return 0
+  const styles = getComputedStyle(galleryListRef.value)
+  const gap = Number.parseFloat(styles.columnGap || styles.gap || '0')
+  return firstCard.offsetWidth + (Number.isFinite(gap) ? gap : 0)
+}
+function syncGalleryArrows() {
+  if (!galleryListRef.value) return
+  showGalleryLeftArrow.value = galleryListRef.value.scrollLeft > 8
+}
+function scrollGallery(direction: -1 | 1) {
+  if (!galleryListRef.value) return
+  const step = getGallerySnapStep()
+  if (step > 0) {
+    const currentIndex = Math.round(galleryListRef.value.scrollLeft / step)
+    const targetIndex = Math.max(0, currentIndex + direction)
+    galleryListRef.value.scrollTo({ left: targetIndex * step, behavior: 'auto' })
+    setTimeout(syncGalleryArrows, 240)
+    return
+  }
+  const shift = Math.max(220, Math.round(galleryListRef.value.clientWidth * 0.82))
+  galleryListRef.value.scrollBy({ left: shift * direction, behavior: 'smooth' })
+  setTimeout(syncGalleryArrows, 240)
+}
+
+const brokenProgramImages = reactive<Record<string, boolean>>({})
+const isProgramImageBroken = (id: string) => Boolean(brokenProgramImages[id])
+function onProgramImageError(event: Event, program: ResultProgram) {
+  const image = event.currentTarget as HTMLImageElement
+  if (image.dataset.fallback !== '1') {
+    image.dataset.fallback = '1'
+    image.src = program.imageUrl
+    return
+  }
+  brokenProgramImages[program.id] = true
+}
+
+const brokenGallery = reactive<Record<number, boolean>>({})
+const isGalleryBroken = (index: number) => Boolean(brokenGallery[index])
+function markGalleryBroken(index: number) {
+  brokenGallery[index] = true
+}
+</script>
+
+
+=== Chatium/components/QuestionScreen.vue ===
+<template>
+  <div class="quiz-card">
+    <div class="quiz-stack">
+      <QuizHeader :progress-percent="progressPercent" :on-back="onBack" />
+
+      <p v-if="offerText" class="quiz-offer">{{ offerText }}</p>
+
+      <div v-if="isStart" class="quiz-brand">
+        <img class="quiz-brand-photo" src="/assets/quiz/hero/hero.jpg" alt="Екатерина Усманова" />
+      </div>
+
+      <h1 v-if="screen.title" class="quiz-title">{{ screen.title }}</h1>
+      <p v-if="screen.subtitle" class="quiz-subtitle">{{ screen.subtitle }}</p>
+
+      <!-- Возрастная шкала -->
+      <div v-if="isAgeScale" class="quiz-age-scale">
+        <button
+          v-for="option in optionList"
+          :key="option"
+          type="button"
+          :class="['quiz-age-chip', { 'is-selected': selectedSingle === option }]"
+          :aria-pressed="selectedSingle === option"
+          @click="onSelect(option)"
+        >
+          <span class="quiz-age-chip-value">{{ option }}</span>
+          <span class="quiz-age-chip-unit">лет</span>
+        </button>
+      </div>
+
+      <!-- Карточки целей -->
+      <div v-if="isGoalCards" class="quiz-goal-grid">
+        <button
+          v-for="(option, index) in optionList"
+          :key="option"
+          type="button"
+          :class="['quiz-goal-card', { 'is-selected': selectedSingle === option }]"
+          :aria-pressed="selectedSingle === option"
+          @click="onSelect(option)"
+        >
+          <span
+            v-if="optionIcons[index]"
+            class="quiz-goal-card-icon"
+            :style="{ '--opt-icon': `url(${optionIcons[index]})` }"
+            aria-hidden="true"
+          />
+          <span class="quiz-goal-card-text">{{ option }}</span>
+        </button>
+      </div>
+
+      <div class="quiz-option-list">
+        <!-- Обычный одиночный выбор -->
+        <template v-if="isPlainSingle">
+          <OptionButton
+            v-for="(option, index) in optionList"
+            :key="option"
+            :label="option"
+            :icon="optionIcons[index]"
+            :selected="selectedSingle === option"
+            @click="onSelect(option)"
+          />
+        </template>
+
+        <!-- Множественный выбор -->
+        <template v-if="screen.kind === 'multiple'">
+          <OptionButton
+            v-for="(option, index) in optionList"
+            :key="option"
+            :label="option"
+            :icon="optionIcons[index]"
+            :selected="selectedMultiple.includes(option)"
+            @click="onToggle(option)"
+          />
+        </template>
+
+        <!-- Числовой ввод -->
+        <div v-if="screen.kind === 'input'" class="quiz-metric-section">
+          <div class="quiz-metric-input-wrap">
+            <label class="quiz-metric-input" :aria-label="screen.title || 'Введите значение'">
+              <input
+                class="quiz-metric-value"
+                type="number"
+                inputmode="numeric"
+                :placeholder="inputPlaceholder"
+                :value="inputValue"
+                @input="onInput(($event.target as HTMLInputElement).value)"
+              />
+              <span v-if="screen.unit" class="quiz-metric-unit">{{ screen.unit }}</span>
+            </label>
+            <span class="quiz-metric-divider" />
+          </div>
+
+          <div class="quiz-bmi-card">
+            <span class="quiz-bmi-icon" :style="{ '--bmi-icon': `url(${BMI_ICON_SRC})` }" aria-hidden="true" />
+            <div class="quiz-bmi-content">
+              <p class="quiz-bmi-title">{{ bmiCard.title }}</p>
+              <p class="quiz-bmi-text">{{ bmiCard.text }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-for="issue in issues" :key="issue.field" class="quiz-error">{{ issue.message }}</div>
+
+      <div v-if="isStart" class="quiz-consent">
+        <span>Продолжая, вы соглашаетесь с обработкой персональных данных.</span>
+        <div class="quiz-legal">
+          <a class="quiz-legal-link" :href="legalLinks.offer" target="_blank" rel="noreferrer">Оферта</a>
+          {{ ' · ' }}
+          <a class="quiz-legal-link" :href="legalLinks.privacy" target="_blank" rel="noreferrer">Политика конфиденциальности</a>
+          {{ ' · ' }}
+          <a class="quiz-legal-link" :href="legalLinks.personal_data" target="_blank" rel="noreferrer">Согласие на обработку персональных данных</a>
+        </div>
+      </div>
+
+      <div v-if="stickyAction" class="quiz-sticky-cta">
+        <div class="quiz-actions">
+          <Button label="Продолжить" @click="onNext" />
+        </div>
+      </div>
+      <div v-else-if="screen.kind !== 'single'" class="quiz-actions">
+        <Button label="Продолжить" @click="onNext" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import QuizHeader from './QuizHeader.vue'
+import OptionButton from './OptionButton.vue'
+import Button from './Button.vue'
+import type { LegalLinks, QuizAnswersByScreen, QuizScreen, ValidationIssue } from '../../src/quiz/types'
+
+const props = defineProps<{
+  screen: QuizScreen
+  selectedSingle?: string
+  selectedMultiple: string[]
+  inputValue: string
+  answersByScreen: QuizAnswersByScreen
+  progressPercent: number
+  issues: ValidationIssue[]
+  legalLinks: LegalLinks
+  onSelect: (option: string) => void
+  onToggle: (option: string) => void
+  onInput: (value: string) => void
+  onNext: () => void
+  onBack: () => void
+}>()
+
+const BMI_ICON_SRC = '/assets/icons/fitness_icons/Fitness-icons/SVG/scale.svg'
+
+const optionList = computed(() =>
+  props.screen.kind === 'single' || props.screen.kind === 'multiple' ? props.screen.options : [],
+)
+const optionIcons = computed(() =>
+  (props.screen.kind === 'single' || props.screen.kind === 'multiple') && props.screen.optionIcons
+    ? props.screen.optionIcons
+    : [],
+)
+const stickyAction = computed(() => props.screen.kind === 'multiple' || props.screen.kind === 'input')
+const offerText = computed(() => (props.screen.kind === 'single' ? props.screen.offer : undefined))
+const isStart = computed(() => props.screen.id === 'age')
+const isAgeScale = computed(() => props.screen.kind === 'single' && props.screen.id === 'age')
+const isGoalCards = computed(() => props.screen.kind === 'single' && props.screen.id === 'result_focus')
+const isPlainSingle = computed(() => props.screen.kind === 'single' && !isAgeScale.value && !isGoalCards.value)
+
+const inputPlaceholder = computed(() => {
+  if (props.screen.id === 'current_weight') return '72'
+  if (props.screen.id === 'height') return '168'
+  if (props.screen.id === 'target_weight') return '60'
+  return '0'
+})
+
+function parseNumericValue(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const numeric = Number(value)
+    if (Number.isFinite(numeric)) return numeric
+  }
+  return undefined
+}
+
+function bmiLabel(value: number): string {
+  if (value < 18.5) return 'ниже нормы'
+  if (value < 25) return 'в норме'
+  if (value < 30) return 'выше нормы'
+  return 'значительно выше нормы'
+}
+
+const bmiCard = computed(() => {
+  let currentWeight = parseNumericValue(props.answersByScreen.current_weight)
+  let height = parseNumericValue(props.answersByScreen.height)
+
+  if (props.screen.id === 'current_weight') currentWeight = parseNumericValue(props.inputValue)
+  if (props.screen.id === 'height') height = parseNumericValue(props.inputValue)
+  if (props.screen.id === 'target_weight') currentWeight = parseNumericValue(props.inputValue) ?? currentWeight
+
+  const hasMetrics = Boolean(currentWeight && height && currentWeight > 0 && height > 0)
+  if (!hasMetrics) {
+    return {
+      title: 'Рассчитываем ИМТ',
+      text: 'ИМТ помогает точнее подобрать безопасный темп, нагрузку и питание под вас.',
+    }
+  }
+
+  const bmiValue = Number((currentWeight! / Math.pow(height! / 100, 2)).toFixed(1))
+  return {
+    title: `ИМТ: ${bmiValue} (${bmiLabel(bmiValue)})`,
+    text: 'Это ориентир для персонального плана: учитываем его, чтобы комфортно двигаться к цели.',
+  }
+})
+</script>
+
+
+=== Chatium/components/QuizHeader.vue ===
+<template>
+  <div class="quiz-header">
+    <div class="quiz-header-logo-row" aria-hidden="true">
+      <img class="quiz-header-logo" src="/assets/brand/usmanova-fit-logo.png" alt="" />
+    </div>
+
+    <div class="quiz-header-progress-row">
+      <button
+        v-if="onBack"
+        type="button"
+        aria-label="Назад"
+        class="quiz-header-back"
+        @click="onBack"
+      >
+        <span class="quiz-header-back-icon" aria-hidden="true" />
+      </button>
+      <span v-else class="quiz-header-back-placeholder" />
+
+      <div class="quiz-progress" aria-label="progress">
+        <span v-for="(seg, index) in segments" :key="index" class="quiz-progress-segment">
+          <span class="quiz-progress-segment-fill" :style="{ transform: `scaleX(${seg})` }" />
+        </span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const props = defineProps<{
+  progressPercent: number
+  onBack?: () => void
+}>()
+
+const SEGMENT_COUNT = 5
+
+const segments = computed(() => {
+  const filled = (props.progressPercent / 100) * SEGMENT_COUNT
+  return Array.from({ length: SEGMENT_COUNT }, (_, index) =>
+    Math.max(0, Math.min(1, filled - index)),
+  )
+})
+</script>
+
+
+=== Chatium/components/ResultInputIcon.vue ===
+<template>
+  <svg v-if="label === 'Цель'" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="8" />
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+  </svg>
+  <svg v-else-if="label === 'Зоны'" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M8 3c2 2 6 2 8 0" />
+    <path d="M7 5c1 4 1 10-1 16" />
+    <path d="M17 5c-1 4-1 10 1 16" />
+    <path d="M8 13c2 1 6 1 8 0" />
+  </svg>
+  <svg v-else-if="label === 'Формат'" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 11l8-7 8 7" />
+    <path d="M6 10v10h12V10" />
+    <path d="M10 20v-6h4v6" />
+  </svg>
+  <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6 20V10" />
+    <path d="M12 20V5" />
+    <path d="M18 20v-8" />
+    <path d="M4 20h16" />
+  </svg>
+</template>
+
+<script setup lang="ts">
+defineProps<{ label: string }>()
+</script>
+
+
+=== Chatium/components/ResultProgramIcon.vue ===
+<template>
+  <svg v-if="isBelly" viewBox="0 0 56 56" aria-hidden="true">
+    <path d="M22 8c3 3 9 3 12 0" />
+    <path d="M20 12c2 9 2 22-3 34" />
+    <path d="M36 12c-2 9-2 22 3 34" />
+    <path d="M20 31c5 3 11 3 16 0" />
+  </svg>
+  <svg v-else-if="isGlutes" viewBox="0 0 56 56" aria-hidden="true">
+    <path d="M18 16c4 8 4 22-2 32" />
+    <path d="M38 16c-4 8-4 22 2 32" />
+    <path d="M18 22c6 6 14 6 20 0" />
+    <path d="M22 38c4 3 8 3 12 0" />
+  </svg>
+  <svg v-else viewBox="0 0 56 56" aria-hidden="true">
+    <path d="M17 36l22-22" />
+    <path d="M13 32l11 11" />
+    <path d="M32 13l11 11" />
+    <path d="M9 36l11 11" />
+    <path d="M36 9l11 11" />
+  </svg>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const props = defineProps<{ title: string }>()
+
+const isBelly = computed(() => props.title.includes('Живот') || props.title.includes('талия'))
+const isGlutes = computed(() => props.title.includes('Ягодицы') || props.title.includes('ног'))
+</script>
+
+
+=== Chatium/components/ResultScreen.vue ===
+<template>
+  <div class="quiz-card result-page">
+    <div class="quiz-stack">
+      <QuizHeader :progress-percent="progressPercent" :on-back="onBack" />
+
+      <div class="result-screen">
+        <section class="result-showcase">
+          <div class="result-showcase-main">
+            <header class="result-intro">
+              <h2 class="result-title" :aria-label="title">
+                <span class="result-title-main">{{ resultTitleMain }}</span>
+                <span class="result-title-line">с <strong>{{ currentWeight }}</strong> до <strong>{{ targetWeight }}</strong> кг</span>
+              </h2>
+              <p class="result-lead">Мы собрали ориентир по тренировкам и питанию на основе ваших ответов.</p>
+            </header>
+
+            <section class="result-hero">
+              <h3 class="result-hero-title">Ваш путь к цели</h3>
+              <div class="result-journey">
+                <div class="result-journey-stat is-current">
+                  <span class="result-journey-caption">Сейчас</span>
+                  <span class="result-journey-weight">{{ currentWeight }}<span class="result-journey-unit">кг</span></span>
+                </div>
+                <div class="result-journey-stat is-target">
+                  <span class="result-journey-caption">Цель</span>
+                  <span class="result-journey-weight">{{ targetWeight }}<span class="result-journey-unit">кг</span></span>
+                </div>
+
+                <img class="result-journey-arc" src="/assets/quiz/result/duga.svg" alt="" loading="lazy" decoding="async" aria-hidden="true" />
+
+                <div class="result-journey-figures" aria-hidden="true">
+                  <span class="result-journey-figure is-current">
+                    <img
+                      v-if="!isCurrentImageBroken"
+                      class="result-journey-image"
+                      :src="currentImage"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      @error="isCurrentImageBroken = true"
+                    />
+                    <span :class="isCurrentImageBroken ? 'result-journey-placeholder' : 'result-journey-placeholder is-hidden'">
+                      <span class="result-journey-silhouette is-current" />
+                    </span>
+                  </span>
+                  <span class="result-journey-figure is-target">
+                    <img
+                      v-if="!isTargetImageBroken"
+                      class="result-journey-image"
+                      :src="targetImage"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      @error="isTargetImageBroken = true"
+                    />
+                    <span :class="isTargetImageBroken ? 'result-journey-placeholder' : 'result-journey-placeholder is-hidden'">
+                      <span class="result-journey-silhouette is-target" />
+                    </span>
+                  </span>
+                </div>
+
+                <svg class="result-journey-arrow" viewBox="0 0 100 60" aria-hidden="true">
+                  <path d="M 12 39 C 33 21, 57 21, 80 28" fill="none" stroke="currentColor" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 74 20 L 92 28 L 74 36" fill="none" stroke="currentColor" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+
+                <div class="result-journey-goal">
+                  <span class="result-journey-goal-label">Цель:</span>
+                  <span v-if="hasWeightDiff" class="result-journey-goal-value">{{ goalDeltaPrefix }}{{ weightDiff }}<span class="result-journey-goal-unit">кг</span></span>
+                  <span v-else class="result-journey-goal-note">сохранить форму</span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <aside class="result-showcase-aside" aria-hidden="true">
+            <img class="result-showcase-photo" src="/assets/quiz/result/usmanova_result.png" alt="" loading="lazy" decoding="async" />
+          </aside>
+        </section>
+
+        <section v-if="inputs.length > 0" class="result-card">
+          <h3 class="result-card-title">Ваши вводные</h3>
+          <p class="result-card-note">На их основе мы собрали персональный план.</p>
+          <div class="result-inputs">
+            <div v-for="item in inputs" :key="item.label" class="result-input-chip">
+              <span class="result-input-icon" aria-hidden="true">
+                <ResultInputIcon :label="item.label" />
+              </span>
+              <span class="result-input-label">{{ item.label }}</span>
+              <span class="result-input-value">{{ item.value }}</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="result-metrics-grid">
+          <section class="result-card result-nutrition-card">
+            <div class="result-card-heading">
+              <span class="result-card-icon is-plate" aria-hidden="true" />
+              <h3 class="result-card-title">Ориентир по питанию</h3>
+            </div>
+            <span class="result-nutrition-decor" aria-hidden="true" />
+            <div class="result-calories">
+              <span class="result-calories-value">{{ calorieNorm }}</span>
+              <span class="result-calories-unit">ккал в день</span>
+            </div>
+            <div class="result-macros">
+              <div class="result-macro is-protein">
+                <span class="result-macro-label">Белки</span>
+                <span class="result-macro-value">{{ protein }} г</span>
+              </div>
+              <div class="result-macro is-fat">
+                <span class="result-macro-label">Жиры</span>
+                <span class="result-macro-value">{{ fat }} г</span>
+              </div>
+              <div class="result-macro is-carbs">
+                <span class="result-macro-label">Углеводы</span>
+                <span class="result-macro-value">{{ carbs }} г</span>
+              </div>
+            </div>
+            <p class="result-card-note">Это ориентир для старта. Точные значения можно корректировать по самочувствию и динамике.</p>
+          </section>
+
+          <section class="result-card result-bmi-card">
+            <div class="result-card-heading">
+              <span class="result-card-icon is-bmi" aria-hidden="true" />
+              <h3 class="result-card-title">Индекс массы тела</h3>
+            </div>
+            <div class="result-bmi-summary">
+              <span class="result-bmi-value">{{ bmi }}</span>
+              <span class="result-bmi-status">{{ bmiLabel }}</span>
+            </div>
+            <div class="result-bmi-scale" aria-hidden="true">
+              <div class="result-bmi-track" />
+              <span class="result-bmi-marker" :style="{ left: `${bmiMarker.toFixed(1)}%` }" />
+            </div>
+            <div class="result-bmi-legend">
+              <span>Низкий</span>
+              <span>Норма</span>
+              <span>Выше</span>
+              <span>Высокий</span>
+            </div>
+            <p class="result-card-note">Используем этот показатель как ориентир для подбора комфортной нагрузки.</p>
+          </section>
+        </div>
+
+        <section class="result-programs">
+          <h3 class="result-card-title">Подборка программ для вас</h3>
+          <p class="result-programs-subtitle">Мы выбрали программы под вашу цель, зоны и формат тренировок.</p>
+          <div class="result-programs-carousel">
+            <div
+              ref="programsListRef"
+              class="result-programs-list"
+              @scroll="syncProgramsArrows"
+            >
+              <article v-for="program in programs" :key="program.id" class="result-program" :draggable="false">
+                <div class="result-program-image-wrap" aria-hidden="true">
+                  <img
+                    v-if="!isProgramImageBroken(program.id)"
+                    class="result-program-image"
+                    :src="program.localImage"
+                    :alt="program.title"
+                    :draggable="false"
+                    loading="lazy"
+                    decoding="async"
+                    data-fallback="0"
+                    @dragstart.prevent
+                    @error="onProgramImageError($event, program)"
+                  />
+                  <span :class="isProgramImageBroken(program.id) ? 'result-program-fallback' : 'result-program-fallback is-hidden'">
+                    <span class="result-program-fallback-icon">
+                      <ResultProgramIcon :title="program.title" />
+                    </span>
+                    <span class="result-program-fallback-title">{{ program.title }}</span>
+                  </span>
+                </div>
+
+                <div class="result-program-copy">
+                  <div class="result-program-badges">
+                    <span class="result-program-badge is-type">{{ program.type }}</span>
+                  </div>
+                  <h4 class="result-program-title">{{ program.title }}</h4>
+                  <p class="result-program-reason">{{ program.description }}</p>
+                </div>
+              </article>
+            </div>
+            <button
+              type="button"
+              :class="showProgramsLeftArrow ? 'result-programs-arrow is-left is-visible' : 'result-programs-arrow is-left'"
+              aria-label="Прокрутить программы влево"
+              @click="scrollPrograms(-1)"
+            >
+              <span class="result-programs-arrow-icon" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              class="result-programs-arrow"
+              aria-label="Прокрутить программы вправо"
+              @click="scrollPrograms(1)"
+            >
+              <span class="result-programs-arrow-icon" aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <div class="quiz-sticky-cta">
+        <div class="quiz-actions">
+          <Button label="Открыть доступ к программам" @click="onOpenPaywall" />
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, reactive, ref } from 'vue'
+import QuizHeader from './QuizHeader.vue'
+import Button from './Button.vue'
+import ResultInputIcon from './ResultInputIcon.vue'
+import ResultProgramIcon from './ResultProgramIcon.vue'
+import type { ResultInput, ResultProgram } from '../../src/quiz/types'
+
+const props = defineProps<{
+  title: string
+  name: string
+  currentImage: string
+  targetImage: string
+  currentWeight: number
+  targetWeight: number
+  weightDiff: number
+  weightLoss: boolean
+  inputs: ResultInput[]
+  calorieNorm: number
+  protein: number
+  fat: number
+  carbs: number
+  bmi: number
+  bmiLabel: string
+  programs: ResultProgram[]
+  progressPercent: number
+  onOpenPaywall: () => void
+  onBack: () => void
+}>()
+
+const bmiMarker = computed(() => Math.max(4, Math.min(96, ((props.bmi - 15) / 25) * 100)))
+const hasWeightDiff = computed(() => props.weightDiff > 0)
+const goalDeltaPrefix = computed(() => (props.weightLoss ? '-' : '+'))
+const displayName = computed(() => props.name || 'Ваш план')
+const resultTitleMain = computed(() => (props.name ? `${displayName.value}, вот ваш план:` : 'Ваш план:'))
+
+const isCurrentImageBroken = ref(false)
+const isTargetImageBroken = ref(false)
+
+const brokenProgramImages = reactive<Record<string, boolean>>({})
+const isProgramImageBroken = (id: string) => Boolean(brokenProgramImages[id])
+
+function onProgramImageError(event: Event, program: ResultProgram) {
+  const image = event.currentTarget as HTMLImageElement
+  if (image.dataset.fallback !== '1') {
+    image.dataset.fallback = '1'
+    image.src = program.imageUrl
+    return
+  }
+  brokenProgramImages[program.id] = true
+}
+
+const programsListRef = ref<HTMLDivElement | null>(null)
+const showProgramsLeftArrow = ref(false)
+
+function syncProgramsArrows() {
+  if (!programsListRef.value) return
+  showProgramsLeftArrow.value = programsListRef.value.scrollLeft > 8
+}
+
+function scrollPrograms(direction: -1 | 1) {
+  if (!programsListRef.value) return
+  const shift = Math.max(220, Math.round(programsListRef.value.clientWidth * 0.82))
+  programsListRef.value.scrollBy({ left: shift * direction, behavior: 'smooth' })
+  setTimeout(syncProgramsArrows, 280)
+}
+</script>
+
+
+=== Chatium/components/TrustScreen.vue ===
+<template>
+  <div class="quiz-card">
+    <div :class="hasResearchSlides ? 'quiz-transition-screen is-research' : 'quiz-transition-screen'">
+      <div class="quiz-stack">
+        <QuizHeader :progress-percent="progressPercent" :on-back="onBack" />
+
+        <video
+          v-if="mediaVideoSrc"
+          class="quiz-trust-video"
+          :src="mediaVideoSrc"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+        />
+        <img v-else-if="mediaSrc" class="quiz-trust-photo" :src="mediaSrc" alt="" aria-hidden="true" />
+
+        <h1 v-if="title" class="quiz-title">{{ title }}</h1>
+        <p v-if="text && !hasResearchSlides" class="quiz-subtitle">{{ text }}</p>
+
+        <div v-if="hasResearchSlides" class="quiz-research-slider">
+          <div class="quiz-research-stage">
+            <button
+              type="button"
+              class="quiz-research-nav"
+              aria-label="Предыдущий слайд"
+              :disabled="researchSlideIndex === 0"
+              @click="goResearchSlide(researchSlideIndex - 1)"
+            >
+              <span class="quiz-research-nav-icon" aria-hidden="true" />
+            </button>
+
+            <div class="quiz-research-copy">
+              <p class="quiz-research-text">{{ currentResearchSlide?.text }}</p>
+              <p class="quiz-research-source">{{ currentResearchSlide?.source }}</p>
+            </div>
+
+            <button
+              type="button"
+              class="quiz-research-nav is-next"
+              aria-label="Следующий слайд"
+              :disabled="researchSlideIndex === slides.length - 1"
+              @click="goResearchSlide(researchSlideIndex + 1)"
+            >
+              <span class="quiz-research-nav-icon" aria-hidden="true" />
+            </button>
+          </div>
+
+          <div class="quiz-research-dots">
+            <button
+              v-for="(_, index) in slides"
+              :key="index"
+              type="button"
+              :class="index === researchSlideIndex ? 'quiz-research-dot is-active' : 'quiz-research-dot'"
+              :aria-label="`Слайд ${index + 1}`"
+              @click="goResearchSlide(index)"
+            />
+          </div>
+        </div>
+
+        <div v-else class="quiz-benefit-list" role="list">
+          <p
+            v-for="(item, index) in benefits"
+            :key="item"
+            class="quiz-benefit-item"
+            role="listitem"
+            :style="{ '--benefit-delay': `${index * 220}ms` }"
+          >
+            <span class="quiz-benefit-check" aria-hidden="true" />
+            <span class="quiz-benefit-text">{{ item }}</span>
+          </p>
+        </div>
+
+        <div class="quiz-actions">
+          <Button label="Продолжить" @click="onNext" />
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import QuizHeader from './QuizHeader.vue'
+import Button from './Button.vue'
+
+interface ResearchSlide {
+  text: string
+  source: string
+}
+
+const props = defineProps<{
+  title?: string
+  text?: string
+  benefits?: string[]
+  mediaSrc?: string
+  mediaVideoSrc?: string
+  researchSlides?: ResearchSlide[]
+  progressPercent: number
+  onNext: () => void
+  onBack: () => void
+}>()
+
+const slides = computed(() => props.researchSlides ?? [])
+const hasResearchSlides = computed(() => slides.value.length > 0)
+
+const researchSlideIndex = ref(0)
+
+function goResearchSlide(index: number) {
+  if (!hasResearchSlides.value) return
+  researchSlideIndex.value = Math.max(0, Math.min(index, slides.value.length - 1))
+}
+
+const currentResearchSlide = computed(() =>
+  hasResearchSlides.value ? slides.value[researchSlideIndex.value] : undefined,
+)
+</script>
+
+
+=== Chatium/dev/index.html ===
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Vue preview · Квиз Усманова Фит</title>
+  </head>
+  <body>
+    <main class="quiz-shell" style="position: relative">
+      <div id="app"></div>
+    </main>
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>
+
+
+=== Chatium/dev/main.ts ===
+import { createApp } from 'vue'
+import QuizPage from '../pages/QuizPage.vue'
+import { quizThemeCss } from '../../src/ui/theme'
+
+// Подключаем общий CSS квиза (та же строка стилей, что и в Chatium index.tsx).
+const style = document.createElement('style')
+style.textContent = quizThemeCss
+document.head.appendChild(style)
+
+createApp(QuizPage).mount('#app')
+
+
+=== Chatium/dev/vite.config.ts ===
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const repoRoot = path.resolve(__dirname, '../../')
+
+const MIME: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.ico': 'image/x-icon',
+}
+
+/**
+ * Отдаём реальные ассеты проекта (/assets/...) из корня репозитория,
+ * чтобы Vue-превью видело те же изображения, что и боевой квиз.
+ */
+function serveProjectAssets() {
+  return {
+    name: 'serve-project-assets',
+    configureServer(server: { middlewares: { use: (fn: (req: any, res: any, next: () => void) => void) => void } }) {
+      server.middlewares.use((req, res, next) => {
+        const url: string | undefined = req.url
+        if (!url || !url.startsWith('/assets/')) return next()
+
+        const clean = decodeURIComponent(url.split('?')[0])
+        const filePath = path.join(repoRoot, clean)
+
+        if (!filePath.startsWith(repoRoot) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+          return next()
+        }
+
+        const ext = path.extname(filePath).toLowerCase()
+        res.setHeader('Content-Type', MIME[ext] ?? 'application/octet-stream')
+        fs.createReadStream(filePath).pipe(res)
+      })
+    },
+  }
+}
+
+export default defineConfig({
+  root: __dirname,
+  plugins: [serveProjectAssets(), vue()],
+  server: {
+    port: 4174,
+    host: '127.0.0.1',
+  },
+  build: {
+    // Абсолютные пути ассетов (/assets/...) отдаёт платформа в рантайме,
+    // поэтому не бандлим их при локальной проверочной сборке.
+    rollupOptions: {
+      external: (id) => id.startsWith('/assets/'),
+    },
+  },
+})
+
+
+=== Chatium/index.tsx ===
+/**
+ * Серверная обёртка маршрута Chatium (TSX используется ТОЛЬКО на сервере).
+ * Весь UI отрисовывает Vue-компонент QuizPage.
+ *
+ * Здесь же:
+ *  - подключаем общий CSS квиза (строка из существующего src/ui/theme.ts);
+ *  - кладём скрытый контейнер формы GetCourse, который Vue перенесёт на пейволл;
+ *  - пробрасываем UTM в клиент через безопасный boot-payload.
+ *
+ * ВНИМАНИЕ ПО ПЛАТФОРМЕ:
+ * Форма роутера `app.get('/').query(...).handle(...)` и `app.html(...)`
+ * взяты из примеров ассистента Chatium. Подтвердите точные сигнатуры у Chatium.
+ */
+import { jsx } from '@app/html-jsx'
+import QuizPage from './pages/QuizPage.vue'
+import { quizThemeCss } from '../src/ui/theme'
+
+export const indexRoute = app
+  .get('/')
+  .query((s) => ({
+    utm_source: s.string().optional(),
+    utm_medium: s.string().optional(),
+    utm_campaign: s.string().optional(),
+    utm_content: s.string().optional(),
+    utm_term: s.string().optional(),
+  }))
+  .handle(async (ctx, req) => {
+    const utm = {
+      utm_source: req.query.utm_source ?? '',
+      utm_medium: req.query.utm_medium ?? '',
+      utm_campaign: req.query.utm_campaign ?? '',
+      utm_content: req.query.utm_content ?? '',
+      utm_term: req.query.utm_term ?? '',
+    }
+
+    return app.html(
+      <html lang="ru">
+        <head>
+          <meta charSet="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+          <title>Квиз Усманова Фит</title>
+          <style>{quizThemeCss}</style>
+        </head>
+        <body>
+          <main class="quiz-shell" style={{ position: 'relative' }}>
+            <QuizPage />
+          </main>
+
+          <script>{`window.__QUIZ_BOOT__ = ${JSON.stringify({ utm })};`}</script>
+
+          {/* Скрытый контейнер формы GetCourse. Vue-компонент GetCourseForm.vue
+              перенесёт узел #gcPaywallForm в видимую область на экране пейволла.
+              Вставьте сюда боевой скрипт формы GetCourse, когда заказчик его выдаст. */}
+          <div id="allGetcourseForms">
+            <div id="gcPaywallForm" style="display:none">
+              {/* <script id="ВАШ_GC_SCRIPT_ID" src="https://ВАША_ШКОЛА.getcourse.ru/pl/lite/widget/script?id=XXXXX"></script> */}
+            </div>
+          </div>
+        </body>
+      </html>,
+    )
+  })
+
+
+=== Chatium/pages/QuizPage.vue ===
+<template>
+  <QuestionScreen
+    v-if="screen.kind === 'single' || screen.kind === 'multiple' || screen.kind === 'input'"
+    :screen="screen"
+    :selected-single="selectedSingle"
+    :selected-multiple="selectedMultiple"
+    :input-value="inputValue"
+    :answers-by-screen="state.answersByScreen"
+    :progress-percent="progressPercent"
+    :issues="currentIssues"
+    :legal-links="quizFlow.legalLinks"
+    :on-select="onSelectSingle"
+    :on-toggle="onToggleMultiple"
+    :on-input="onInputNumber"
+    :on-next="onNext"
+    :on-back="onBack"
+  />
+
+  <TrustScreen
+    v-else-if="screen.kind === 'trust' || screen.kind === 'salesTransition'"
+    :title="screen.title"
+    :text="trustText"
+    :benefits="trustBenefits"
+    :media-src="trustMediaSrc"
+    :media-video-src="trustVideoSrc"
+    :research-slides="researchSlides"
+    :progress-percent="progressPercent"
+    :on-next="onNext"
+    :on-back="onBack"
+  />
+
+  <LoaderScreen
+    v-else-if="screen.kind === 'loader'"
+    :title="screen.title"
+    :text="loaderText"
+    :steps="loaderSteps"
+    :button-text="loaderButtonText"
+    :progress-percent="progressPercent"
+    :on-next="onNext"
+    :on-back="onBack"
+  />
+
+  <LeadGateScreen
+    v-else-if="screen.kind === 'leadGate'"
+    :title="screen.title"
+    :text="leadGateText"
+    :value="leadValue"
+    :legal-links="quizFlow.legalLinks"
+    :progress-percent="progressPercent"
+    :issues="leadGateIssues"
+    :on-name-input="(v: string) => updateLead({ name: v })"
+    :on-email-input="(v: string) => updateLead({ email: v })"
+    :on-consent-toggle="(c: boolean) => updateLead({ consentAccepted: c })"
+    :on-next="onNext"
+    :on-back="onBack"
+  />
+
+  <ResultScreen
+    v-else-if="screen.kind === 'result'"
+    :title="resultData.title"
+    :name="resultData.name"
+    :current-image="resultData.currentImage"
+    :target-image="resultData.targetImage"
+    :current-weight="resultData.currentWeight"
+    :target-weight="resultData.targetWeight"
+    :weight-diff="resultData.weightDiff"
+    :weight-loss="resultData.weightLoss"
+    :inputs="resultData.inputs"
+    :calorie-norm="resultData.calorieNorm"
+    :protein="resultData.protein"
+    :fat="resultData.fat"
+    :carbs="resultData.carbs"
+    :bmi="resultData.bmi"
+    :bmi-label="resultData.bmiLabel"
+    :programs="resultData.programs"
+    :progress-percent="progressPercent"
+    :on-open-paywall="goPaywallFromResult"
+    :on-back="onBack"
+  />
+
+  <PaywallScreen
+    v-else-if="screen.kind === 'paywall'"
+    :screen="screen"
+    :tariffs="quizFlow.tariffs"
+    :legal-links="quizFlow.legalLinks"
+    :name="paywallData.name"
+    :current-weight="paywallData.currentWeight"
+    :target-weight="paywallData.targetWeight"
+    :goal="paywallData.goal"
+    :zones="paywallData.zones"
+    :training-place="paywallData.trainingPlace"
+    :programs="paywallData.programs"
+    :current-image="paywallData.currentImage"
+    :target-image="paywallData.targetImage"
+    :required-blocks="screen.requiredBlocks"
+    :progress-percent="progressPercent"
+    :on-back="onBack"
+  />
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue'
+import QuestionScreen from '../components/QuestionScreen.vue'
+import TrustScreen from '../components/TrustScreen.vue'
+import LoaderScreen from '../components/LoaderScreen.vue'
+import LeadGateScreen from '../components/LeadGateScreen.vue'
+import ResultScreen from '../components/ResultScreen.vue'
+import PaywallScreen from '../components/PaywallScreen.vue'
+
+import { quizFlow } from '../../src/quiz/screens'
+import {
+  calculateProgressPercent,
+  canMoveNext,
+  createInitialState,
+  moveBack,
+  moveNext,
+  saveAnswer,
+} from '../../src/quiz/state'
+import { buildPersonalResult } from '../../src/quiz/result'
+import { buildResultInputs, recommendResultPrograms } from '../../src/quiz/programs'
+import { getResultImages } from '../../src/quiz/resultImages'
+import type {
+  LeadGateAnswer,
+  QuizRuntimeState,
+  QuizScreen,
+  ValidationIssue,
+} from '../../src/quiz/types'
+
+import { resolveUtm } from '../shared/utm'
+import { clearQuizState, getOrCreateSessionId, loadQuizState, saveQuizState } from '../shared/quizPersist'
+import { upsertLead } from '../shared/saveLead'
+
+/* ---- Презентационные метаданные экранов доверия (как в src/components/TrustScreen.tsx) ---- */
+const TRUST_MEDIA_BY_ID: Record<string, string> = {
+  trust_580k: '/assets/quiz/realistic woman scene/womans.jpeg',
+  nutrition_assistant: '/assets/quiz/trust/nutrition-assistant-transition.jpeg',
+}
+const TRUST_VIDEO_BY_ID: Record<string, string> = {
+  trust_soft_training: '/assets/quiz/trust/trust-soft-training.mp4',
+}
+const RESEARCH_SLIDES_BY_ID: Record<string, Array<{ text: string; source: string }>> = {
+  research_trust: [
+    {
+      text: 'Регулярная ходьба и щадящие тренировки помогают сбросить часть веса за несколько недель и заметно прибавляют энергии.',
+      source: 'JAMA, 2019',
+    },
+    {
+      text: 'Умеренная регулярная физическая активность связана с ростом чувства энергии и снижением усталости по данным мета-анализа.',
+      source: 'Psychological Bulletin, 2006',
+    },
+    {
+      text: 'Самоконтроль питания и привычек улучшает удержание результата по весу и делает программу более устойчивой в реальной жизни.',
+      source: 'J Am Diet Assoc, 2011',
+    },
+  ],
+}
+
+/* ---- Состояние ---- */
+const sessionId = getOrCreateSessionId()
+const utm = resolveUtm() as Record<string, string>
+const state = ref<QuizRuntimeState>(loadQuizState() ?? createInitialState(utm))
+const issues = ref<ValidationIssue[]>([])
+
+/* Сохраняем прогресс локально при любом изменении. */
+watch(
+  state,
+  (value) => saveQuizState(value),
+  { deep: true },
+)
+
+function isLead(value: unknown): value is LeadGateAnswer {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    'email' in value &&
+    'consentAccepted' in value
+  )
+}
+
+function getStringAnswer(runtime: QuizRuntimeState, screenId: string): string | undefined {
+  const value = runtime.answersByScreen[screenId]
+  return typeof value === 'string' ? value : undefined
+}
+function getStringArrayAnswer(runtime: QuizRuntimeState, screenId: string): string[] | undefined {
+  const value = runtime.answersByScreen[screenId]
+  if (!Array.isArray(value)) return undefined
+  return value.filter((item): item is string => typeof item === 'string')
+}
+function getFirstName(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? ''
+}
+function buildResultTitle(template: string | undefined, name: string, currentWeight: number, targetWeight: number): string {
+  const base = template ?? '{Имя}, вот ваш план: с {вес} до {целевой вес}'
+  return base
+    .replace('{Имя}', name || 'Ваш план')
+    .replace('{вес}', String(currentWeight))
+    .replace('{целевой вес}', String(targetWeight))
+}
+
+const screen = computed<QuizScreen>(() => quizFlow.screens[state.value.currentScreenIndex])
+const progressPercent = computed(() => calculateProgressPercent(quizFlow, state.value))
+const currentIssues = computed(() => issues.value.filter((issue) => issue.screenId === screen.value.id))
+
+const guardIssues = computed(() => canMoveNext(quizFlow, state.value))
+const nextBlocked = computed(
+  () =>
+    guardIssues.value.length > 0 &&
+    (screen.value.kind === 'single' ||
+      screen.value.kind === 'multiple' ||
+      screen.value.kind === 'input' ||
+      screen.value.kind === 'leadGate'),
+)
+
+/* ---- Селекторы значений для текущего экрана ---- */
+const selectedSingle = computed(() => {
+  const value = state.value.answersByScreen[screen.value.id]
+  return typeof value === 'string' ? value : undefined
+})
+const selectedMultiple = computed(() => {
+  const value = state.value.answersByScreen[screen.value.id]
+  return Array.isArray(value) ? (value as string[]) : []
+})
+const inputValue = computed(() => {
+  const value = state.value.answersByScreen[screen.value.id]
+  return typeof value === 'number' ? String(value) : ''
+})
+
+/* ---- Trust / Loader ---- */
+const trustText = computed(() =>
+  screen.value.kind === 'trust' || screen.value.kind === 'salesTransition' ? screen.value.text : undefined,
+)
+const trustBenefits = computed(() => (screen.value.kind === 'salesTransition' ? screen.value.benefits : []))
+const trustMediaSrc = computed(() => TRUST_MEDIA_BY_ID[screen.value.id])
+const trustVideoSrc = computed(() => TRUST_VIDEO_BY_ID[screen.value.id])
+const researchSlides = computed(() => RESEARCH_SLIDES_BY_ID[screen.value.id])
+
+const loaderText = computed(() => (screen.value.kind === 'loader' ? screen.value.text : undefined))
+const loaderSteps = computed(() => (screen.value.kind === 'loader' ? screen.value.steps : []))
+const loaderButtonText = computed(() => (screen.value.kind === 'loader' ? screen.value.buttonText : undefined))
+
+/* ---- Lead gate ---- */
+const leadGateText = computed(() => (screen.value.kind === 'leadGate' ? screen.value.text : undefined))
+const leadValue = computed<LeadGateAnswer>(() => {
+  const lead = state.value.answersByScreen[screen.value.id]
+  return isLead(lead) ? lead : { name: '', email: '', consentAccepted: true }
+})
+const leadGateIssues = computed(() =>
+  currentIssues.value.length > 0 ? currentIssues.value : nextBlocked.value ? guardIssues.value : [],
+)
+
+/* ---- Результат ---- */
+function buildResultInput(runtime: QuizRuntimeState) {
+  const currentWeight = Number(runtime.answersByScreen.current_weight ?? 70)
+  const targetWeight = Number(runtime.answersByScreen.target_weight ?? currentWeight)
+  const height = Number(runtime.answersByScreen.height ?? 165)
+  return {
+    ageBucket: getStringAnswer(runtime, 'age'),
+    activity: getStringAnswer(runtime, 'activity'),
+    currentWeight,
+    targetWeight,
+    height,
+    goalBody: getStringAnswer(runtime, 'goal_body'),
+    resultFocus: getStringAnswer(runtime, 'result_focus'),
+    zones: getStringArrayAnswer(runtime, 'zones'),
+    trainingPlace: getStringAnswer(runtime, 'training_place'),
+    experience: getStringAnswer(runtime, 'experience'),
+    bestShape: getStringAnswer(runtime, 'best_shape'),
+  }
+}
+
+const resultData = computed(() => {
+  const runtime = state.value
+  const lead = runtime.answersByScreen.lead_gate
+  const leadObj: LeadGateAnswer = isLead(lead) ? lead : { name: '', email: '', consentAccepted: true }
+
+  const input = buildResultInput(runtime)
+  const result = buildPersonalResult(input)
+  const name = getFirstName(leadObj.name)
+  const titleTemplate = screen.value.kind === 'result' ? screen.value.titleTemplate : undefined
+  const title = buildResultTitle(titleTemplate, name, input.currentWeight, input.targetWeight)
+  const images = getResultImages({
+    currentBodyType: getStringAnswer(runtime, 'body_now'),
+    goalBody: getStringAnswer(runtime, 'goal_body'),
+    resultFocus: getStringAnswer(runtime, 'result_focus'),
+    bmi: result.bmi,
+  })
+
+  return {
+    title,
+    name,
+    currentWeight: input.currentWeight,
+    targetWeight: input.targetWeight,
+    weightDiff: Math.abs(result.weightDifferenceKg),
+    weightLoss: result.weightDifferenceKg > 0,
+    inputs: buildResultInputs(input),
+    calorieNorm: result.calorieNorm,
+    protein: result.macros.proteinGrams,
+    fat: result.macros.fatGrams,
+    carbs: result.macros.carbsGrams,
+    bmi: result.bmi,
+    bmiLabel: result.bmiLabel,
+    programs: recommendResultPrograms(input),
+    currentImage: images.currentImage,
+    targetImage: images.targetImage,
+  }
+})
+
+/* ---- Пейволл ---- */
+const paywallData = computed(() => {
+  const runtime = state.value
+  const lead = runtime.answersByScreen.lead_gate
+  const leadObj: LeadGateAnswer = isLead(lead) ? lead : { name: '', email: '', consentAccepted: true }
+
+  const input = buildResultInput(runtime)
+  const result = buildPersonalResult(input)
+  const images = getResultImages({
+    currentBodyType: getStringAnswer(runtime, 'body_now'),
+    goalBody: getStringAnswer(runtime, 'goal_body'),
+    resultFocus: getStringAnswer(runtime, 'result_focus'),
+    bmi: result.bmi,
+  })
+
+  return {
+    name: getFirstName(leadObj.name),
+    currentWeight: input.currentWeight,
+    targetWeight: input.targetWeight,
+    goal: getStringAnswer(runtime, 'result_focus') ?? getStringAnswer(runtime, 'goal_body') ?? 'вашу цель',
+    zones: getStringArrayAnswer(runtime, 'zones') ?? [],
+    trainingPlace: getStringAnswer(runtime, 'training_place') ?? 'удобный формат',
+    programs: recommendResultPrograms(input),
+    currentImage: images.currentImage,
+    targetImage: images.targetImage,
+  }
+})
+
+/* ---- Сохранение лида в Chatium ---- */
+async function persistLead(status: 'draft' | 'completed') {
+  const runtime = state.value
+  const lead = runtime.answersByScreen.lead_gate
+  if (!isLead(lead)) return
+
+  const input = buildResultInput(runtime)
+  const result = buildPersonalResult(input)
+
+  await upsertLead({
+    sessionId,
+    name: lead.name,
+    email: lead.email,
+    consentAccepted: lead.consentAccepted,
+    answers: runtime.answersByScreen,
+    height: input.height,
+    currentWeight: input.currentWeight,
+    targetWeight: input.targetWeight,
+    resultType: result.resultType,
+    calorieNorm: result.calorieNorm,
+    macros: result.macros,
+    utm: runtime.utm,
+    status,
+  })
+}
+
+/* ---- Действия ---- */
+async function onNext() {
+  const runtimeScreen = screen.value
+
+  if (runtimeScreen.kind === 'leadGate') {
+    const guard = canMoveNext(quizFlow, state.value)
+    if (guard.length > 0) {
+      issues.value = guard
+      return
+    }
+    await persistLead('completed')
+  }
+
+  const result = moveNext(quizFlow, state.value)
+  state.value = result.state
+  issues.value = result.issues
+}
+
+function onBack() {
+  const result = moveBack(state.value)
+  state.value = result.state
+  issues.value = []
+}
+
+function onSelectSingle(option: string) {
+  const runtimeScreen = screen.value
+  if (runtimeScreen.kind !== 'single') return
+
+  const saved = saveAnswer(quizFlow, state.value, runtimeScreen.id, option)
+  state.value = saved.state
+  issues.value = saved.issues
+
+  if (saved.issues.length === 0) {
+    setTimeout(() => {
+      if (screen.value.id !== runtimeScreen.id) return
+      const result = moveNext(quizFlow, state.value)
+      state.value = result.state
+      issues.value = result.issues
+    }, 260)
+  }
+}
+
+function onToggleMultiple(option: string) {
+  const runtimeScreen = screen.value
+  if (runtimeScreen.kind !== 'multiple') return
+
+  const current = state.value.answersByScreen[runtimeScreen.id]
+  const selected = Array.isArray(current) ? [...current] : []
+  const next = selected.includes(option) ? selected.filter((item) => item !== option) : [...selected, option]
+
+  const saved = saveAnswer(quizFlow, state.value, runtimeScreen.id, next)
+  state.value = saved.state
+  issues.value = saved.issues
+}
+
+function onInputNumber(raw: string) {
+  const runtimeScreen = screen.value
+  if (runtimeScreen.kind !== 'input') return
+
+  const parsed = Number(raw)
+  const nextValue = raw === '' || Number.isNaN(parsed) ? undefined : parsed
+
+  state.value = {
+    ...state.value,
+    answersByScreen: {
+      ...state.value.answersByScreen,
+      [runtimeScreen.id]: nextValue,
+    },
+    updatedAt: new Date().toISOString(),
+  }
+  issues.value = []
+}
+
+function updateLead(partial: Partial<LeadGateAnswer>) {
+  const runtimeScreen = screen.value
+  if (runtimeScreen.kind !== 'leadGate') return
+
+  const current = state.value.answersByScreen[runtimeScreen.id]
+  const lead: LeadGateAnswer = isLead(current) ? current : { name: '', email: '', consentAccepted: true }
+
+  state.value = {
+    ...state.value,
+    answersByScreen: {
+      ...state.value.answersByScreen,
+      [runtimeScreen.id]: { ...lead, ...partial },
+    },
+    updatedAt: new Date().toISOString(),
+  }
+  issues.value = []
+}
+
+function goPaywallFromResult() {
+  if (screen.value.kind !== 'result') return
+  const paywallIndex = quizFlow.screens.findIndex((item) => item.kind === 'paywall')
+  if (paywallIndex < 0) return
+
+  state.value = {
+    ...state.value,
+    currentScreenIndex: paywallIndex,
+    updatedAt: new Date().toISOString(),
+  }
+  issues.value = []
+}
+
+/* ---- Авто-переход на экране загрузки плана ---- */
+let loaderTimer: ReturnType<typeof setTimeout> | undefined
+watch(
+  () => `${state.value.currentScreenIndex}:${screen.value.id}`,
+  () => {
+    if (loaderTimer) {
+      clearTimeout(loaderTimer)
+      loaderTimer = undefined
+    }
+    const active = screen.value
+    if (active.kind === 'loader' && active.steps.length > 0) {
+      const index = state.value.currentScreenIndex
+      loaderTimer = setTimeout(() => {
+        if (state.value.currentScreenIndex !== index) return
+        if (screen.value.kind !== 'loader' || screen.value.id !== active.id) return
+        const result = moveNext(quizFlow, state.value)
+        state.value = result.state
+        issues.value = result.issues
+      }, 4200)
+    }
+  },
+  { immediate: true },
+)
+
+/* Сохраняем черновик лида, когда он заполнен (на лид-гейте до перехода). */
+onMounted(() => {
+  if (isLead(state.value.answersByScreen.lead_gate)) {
+    void persistLead('draft')
+  }
+})
+
+/* Очистка черновика после показа пейволла. */
+watch(
+  () => screen.value.kind,
+  (kind) => {
+    if (kind === 'paywall') {
+      clearQuizState()
+    }
+  },
+)
+</script>
+
+
+=== Chatium/README.md ===
+# Перенос квиза в Chatium (Vue-версия)
+
+Эта папка — слой UI на **Vue 3 SFC** для деплоя в Chatium. Логика, типы, расчёты,
+данные экранов и CSS переиспользуются из существующего `../src` без изменений.
+
+## Структура
+
+```
+chatium/
+  index.tsx              серверная обёртка маршрута (TSX только на сервере)
+  pages/
+    QuizPage.vue         главный драйвер квиза (порт src/components/QuizApp.tsx)
+  components/
+    QuizHeader.vue       шапка + прогресс в процентах
+    Button.vue           кнопка (inline-стили как в src/ui/primitives)
+    OptionButton.vue     карточка варианта ответа
+    QuestionScreen.vue   single / multiple / number_input + карточка ИМТ
+    TrustScreen.vue      экраны доверия и слайдер исследований
+    LoaderScreen.vue     экран сбора плана
+    LeadGateScreen.vue   имя, почта, согласие
+    ResultScreen.vue     персональный результат (путь к цели, КБЖУ, ИМТ, программы)
+    PaywallScreen.vue    пейволл (оффер, доказательства, тарифы, FAQ, футер)
+    GetCourseForm.vue    перенос скрытого узла формы GetCourse в видимую область
+    ResultInputIcon.vue / ResultProgramIcon.vue / PaywallIncludeIcon.vue / PaywallSafetyIcon.vue  — SVG-иконки
+  api/
+    leads/upsert.ts      серверный POST-роут: upsert лида по sessionId
+  tables/
+    leads.table          схема таблицы лидов
+  shared/
+    utm.ts               чтение UTM из URL по белому списку
+    quizPersist.ts       sessionId + сохранение прогресса в localStorage
+    saveLead.ts          клиентская отправка лида в API
+```
+
+## Что переиспользуется без изменений (из ../src)
+
+- Логика и состояние: `src/quiz/state.ts`
+- Типы: `src/quiz/types.ts`
+- Расчёты: `src/quiz/result.ts`, `src/quiz/programs.ts`, `src/quiz/resultImages.ts`
+- Данные 24 экранов: `data/quiz_screen_map.json` (через `src/quiz/screens.ts`)
+- Все стили: `src/ui/theme.ts` (строка CSS, подключается в `index.tsx`)
+
+Vue-компоненты используют те же CSS-классы, поэтому визуал сохраняется один в один.
+
+## Что нужно подтвердить у Chatium перед публикацией
+
+Эти места написаны по примерам ассистента Chatium, а не по проверенной документации.
+Отмечены комментариями в коде. Уточните точные сигнатуры для вашего workspace:
+
+1. Форма роутера: `app.get('/').query(...).handle(...)` и `app.html(...)` в `index.tsx`.
+2. Серверный POST-роут и методы таблицы: `app.post('/').body(...).handle(...)`,
+   `Leads.findOneBy / create / update` в `api/leads/upsert.ts`.
+3. Точный URL, по которому монтируется `api/leads/upsert.ts` (в `shared/saveLead.ts` стоит `/api/leads/upsert`).
+4. Поддерживаемый способ встраивания формы GetCourse и его допустимость в CSP/санитайзере
+   (скрытый контейнер `#gcPaywallForm` в `index.tsx`, перенос узла в `GetCourseForm.vue`).
+5. Импорты `../src/...`: подтвердите, что Chatium собирает workspace целиком и относительные
+   импорты из `chatium/` в `src/` работают. Если нет — скопируйте файлы логики внутрь `chatium/shared/`.
+
+## Как проверить деплой быстро и без риска
+
+1. Залейте `index.tsx` + `pages/QuizPage.vue` + `components/QuizHeader.vue` + `components/QuestionScreen.vue`
+   и убедитесь, что открывается первый экран. Это проверяет, что Vue-рантайм и маршрут работают.
+2. Затем добавьте `tables/leads.table` + `api/leads/upsert.ts` и пройдите до лид-гейта —
+   проверьте, что запись лида создаётся (upsert по sessionId, без дублей).
+3. Вставьте боевой скрипт GetCourse в скрытый контейнер в `index.tsx` и проверьте форму на пейволле.
+4. Прогон по чек-листу `../docs/06_quality_checklist.md`.
+
+## Обязательные сохраняемые поля (docs/01_hard_constraints.md)
+
+Имя, e-mail, ответы по экранам, рост, вес, целевой вес, тип результата, норма калорий,
+КБЖУ, UTM, дата. Все они уже передаются в `upsertLead(...)` из `QuizPage.vue`.
+
+
+=== Chatium/shared/quizPersist.ts ===
+/**
+ * Локальное сохранение прогресса квиза, чтобы обновление страницы
+ * не сбрасывало ответы пользователя.
+ */
+import type { QuizRuntimeState } from '../../src/quiz/types'
+
+const STATE_STORAGE_KEY = 'quiz_state_v1'
+const SESSION_STORAGE_KEY = 'quiz_session_id'
+
+export function getOrCreateSessionId(): string {
+  if (typeof window === 'undefined') {
+    return `srv_${Date.now()}`
+  }
+
+  try {
+    const existing = window.localStorage.getItem(SESSION_STORAGE_KEY)
+    if (existing) return existing
+  } catch {
+    // ignore
+  }
+
+  const generated =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `sess_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+
+  try {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, generated)
+  } catch {
+    // ignore
+  }
+
+  return generated
+}
+
+export function loadQuizState(): QuizRuntimeState | null {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const raw = window.localStorage.getItem(STATE_STORAGE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as QuizRuntimeState
+  } catch {
+    return null
+  }
+}
+
+export function saveQuizState(state: QuizRuntimeState): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    window.localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // ignore
+  }
+}
+
+export function clearQuizState(): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    window.localStorage.removeItem(STATE_STORAGE_KEY)
+  } catch {
+    // ignore
+  }
+}
+
+
+=== Chatium/shared/saveLead.ts ===
+/**
+ * Клиентская отправка лида в серверный API-роут upsert.
+ *
+ * ВНИМАНИЕ ПО ПЛАТФОРМЕ:
+ * Путь '/api/leads/upsert' зависит от того, как Chatium монтирует
+ * файл chatium/api/leads/upsert.ts. Уточните точный URL у Chatium.
+ */
+import type { LeadPayload } from '../../src/quiz/types'
+
+export interface LeadUpsertBody {
+  sessionId: string
+  name?: string
+  email?: string
+  consentAccepted?: boolean
+  answers?: LeadPayload['answersByScreen']
+  height?: number
+  currentWeight?: number
+  targetWeight?: number
+  resultType?: string
+  calorieNorm?: number
+  macros?: LeadPayload['macros']
+  utm?: Record<string, string>
+  status?: 'draft' | 'completed'
+}
+
+const UPSERT_URL = '/api/leads/upsert'
+
+export async function upsertLead(body: LeadUpsertBody): Promise<{ ok: boolean; leadId?: string }> {
+  if (typeof fetch === 'undefined') {
+    return { ok: false }
+  }
+
+  try {
+    const response = await fetch(UPSERT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      return { ok: false }
+    }
+
+    const data = (await response.json()) as { ok?: boolean; leadId?: string }
+    return { ok: Boolean(data.ok), leadId: data.leadId }
+  } catch {
+    return { ok: false }
+  }
+}
+
+
+=== Chatium/shared/utm.ts ===
+/**
+ * Безопасное чтение UTM-меток из URL по белому списку.
+ * Используется в браузере (Vue onMounted), не на сервере.
+ */
+export interface UtmParams {
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_content?: string
+  utm_term?: string
+}
+
+const ALLOWED_UTM_KEYS: Array<keyof UtmParams> = [
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_content',
+  'utm_term',
+]
+
+const MAX_UTM_LENGTH = 200
+
+function sanitizeUtmValue(value: string): string {
+  // Обрезаем длину и оставляем только безопасные символы.
+  return value.replace(/[^\w\-.: %|/]/giu, '').slice(0, MAX_UTM_LENGTH)
+}
+
+export function readUtmFromUrl(): UtmParams {
+  if (typeof window === 'undefined') return {}
+
+  const params = new URLSearchParams(window.location.search)
+  const result: UtmParams = {}
+
+  for (const key of ALLOWED_UTM_KEYS) {
+    const raw = params.get(key)
+    if (raw && raw.trim()) {
+      result[key] = sanitizeUtmValue(raw.trim())
+    }
+  }
+
+  return result
+}
+
+const UTM_STORAGE_KEY = 'quiz_utm'
+
+/**
+ * UTM фиксируется при первом визите и не перезаписывается на последующих переходах.
+ */
+export function resolveUtm(): UtmParams {
+  if (typeof window === 'undefined') return {}
+
+  try {
+    const stored = window.localStorage.getItem(UTM_STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored) as UtmParams
+    }
+  } catch {
+    // ignore
+  }
+
+  const fresh = readUtmFromUrl()
+
+  try {
+    if (Object.keys(fresh).length > 0) {
+      window.localStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(fresh))
+    }
+  } catch {
+    // ignore
+  }
+
+  return fresh
+}
+
+
+=== Chatium/tables/leads.table ===
+{
+  "name": "quiz_leads",
+  "title": "Лиды квиза",
+  "fields": [
+    { "name": "sessionId", "kind": "StringKind", "title": "Session ID" },
+    { "name": "name", "kind": "StringKind", "title": "Имя" },
+    { "name": "email", "kind": "StringKind", "title": "Email" },
+    { "name": "consentAccepted", "kind": "BooleanKind", "title": "Согласие на обработку данных" },
+    { "name": "answers", "kind": "AnyKind", "title": "Ответы по экранам" },
+    { "name": "height", "kind": "NumberKind", "title": "Рост" },
+    { "name": "currentWeight", "kind": "NumberKind", "title": "Текущий вес" },
+    { "name": "targetWeight", "kind": "NumberKind", "title": "Целевой вес" },
+    { "name": "resultType", "kind": "StringKind", "title": "Тип результата" },
+    { "name": "calorieNorm", "kind": "NumberKind", "title": "Норма калорий" },
+    { "name": "macros", "kind": "AnyKind", "title": "КБЖУ" },
+    { "name": "utm", "kind": "AnyKind", "title": "UTM-метки" },
+    { "name": "status", "kind": "StringKind", "title": "Статус (draft/completed)" }
+  ]
+}
+
