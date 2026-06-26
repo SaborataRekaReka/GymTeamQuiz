@@ -3543,4 +3543,17 @@ html, body {
       }
     }
 
+    /* Result screen shape override: remove decorative notch, keep plain rectangle. */
+    .result-hero,
+    .result-journey {
+      border-radius: 0;
+    }
+
+    .result-hero {
+      background: #FFFFFF;
+      background-image: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+
 `
