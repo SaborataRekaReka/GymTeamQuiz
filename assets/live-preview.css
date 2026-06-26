@@ -1212,43 +1212,6 @@
 
     .legal a:hover { text-decoration: underline; }
 
-    .accordion {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 12px 14px;
-      background: var(--surface);
-    }
-
-    .accordion > summary {
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 15px;
-      line-height: 21px;
-    }
-
-    .accordion > div {
-      margin-top: 10px;
-      color: var(--text-muted);
-      font-size: 14px;
-      line-height: 20px;
-    }
-
-    .tariff {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 14px 16px;
-      display: grid;
-      gap: 6px;
-      background: var(--surface);
-    }
-
-    .tariff-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
-
     @media (max-width: 360px) {
       .metric-input-wrap,
       .bmi-card {
@@ -1259,36 +1222,6 @@
         font-size: 16px;
         line-height: 22px;
       }
-    }
-
-    .tariff-price {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-    }
-
-    .price-now {
-      font-size: 24px;
-      line-height: 30px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .price-old {
-      font-size: 14px;
-      line-height: 20px;
-      color: var(--text-soft);
-      text-decoration: line-through;
-    }
-
-    .embed {
-      border: 1px dashed var(--border);
-      border-radius: var(--radius-lg);
-      padding: 16px;
-      color: var(--text-muted);
-      font-size: 14px;
-      line-height: 20px;
-      background: var(--surface);
     }
 
     .result-screen {

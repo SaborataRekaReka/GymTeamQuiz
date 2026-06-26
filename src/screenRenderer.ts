@@ -379,7 +379,7 @@ function renderPaywallScreen(config: QuizFlowConfig, screen: PaywallScreen, stat
 
   nodes.push({
     type: 'embedPlaceholder',
-    text: 'TODO: здесь будет форма оформления заказа ГетКурса',
+    text: 'Здесь будет форма оформления заказа ГетКурса',
   })
 
   nodes.push({
