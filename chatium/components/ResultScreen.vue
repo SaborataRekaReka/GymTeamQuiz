@@ -74,7 +74,7 @@
           </div>
 
           <aside class="result-showcase-aside" aria-hidden="true">
-            <img class="result-showcase-photo" src="/assets/quiz/result/usmanova_result.png" alt="" loading="lazy" decoding="async" />
+            <img class="result-showcase-photo" src="/assets/quiz/result/usmanova_result.webp" alt="" loading="lazy" decoding="async" />
           </aside>
         </section>
 

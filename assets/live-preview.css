@@ -2577,7 +2577,7 @@
         width: 340px;
         height: 330px;
         border-radius: 120px 0 0 0;
-        background: url('/assets/quiz/result/gradient_background.png') center / cover no-repeat;
+        background: url('/assets/quiz/result/gradient_background.webp') center / cover no-repeat;
         opacity: 0.95;
         z-index: 0;
       }
@@ -2670,7 +2670,7 @@
         width: 290px;
         height: 360px;
         border-radius: 112px 0 0 0;
-        background: url('/assets/quiz/result/gradient_background.png') center / cover no-repeat;
+        background: url('/assets/quiz/result/gradient_background.webp') center / cover no-repeat;
         opacity: 0.88;
         z-index: 0;
       }

@@ -12,7 +12,7 @@
       :style="{ '--opt-icon': `url(${icon})` }"
       aria-hidden="true"
     />
-    <img v-if="hasIcon && !isSvgIcon" class="quiz-option-photo" :src="icon" alt="" aria-hidden="true" />
+    <img v-if="hasIcon && !isSvgIcon" class="quiz-option-photo" :src="icon" alt="" loading="lazy" decoding="async" aria-hidden="true" />
 
     <span class="quiz-option-text">{{ label }}</span>
 

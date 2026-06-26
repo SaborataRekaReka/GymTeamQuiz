@@ -98,8 +98,8 @@ const rangeById = {
 };
 
 const trustMediaById = {
-  trust_580k: '/assets/quiz/realistic woman scene/womans.jpeg',
-  nutrition_assistant: '/assets/quiz/trust/nutrition-assistant-transition.jpeg',
+  trust_580k: '/assets/quiz/realistic woman scene/womans.webp',
+  nutrition_assistant: '/assets/quiz/trust/nutrition-assistant-transition.webp',
 };
 
 const trustVideoById = {
@@ -1285,7 +1285,7 @@ function render() {
         '</div>' +
 
         '<aside class="result-showcase-aside" aria-hidden="true">' +
-          '<img class="result-showcase-photo" src="/assets/quiz/result/usmanova_result.png" alt="" loading="lazy" decoding="async" />' +
+          '<img class="result-showcase-photo" src="/assets/quiz/result/usmanova_result.webp" alt="" loading="lazy" decoding="async" />' +
         '</aside>' +
       '</section>';
 
@@ -1465,7 +1465,7 @@ function render() {
     body +=
       '<section class="paywall-hero">' +
         '<div class="paywall-hero-photo">' +
-          '<img src="/assets/quiz/result/usmanova_result.png" alt="Екатерина Усманова" loading="lazy" decoding="async" />' +
+          '<img src="/assets/quiz/result/usmanova_result.webp" alt="Екатерина Усманова" loading="lazy" decoding="async" />' +
         '</div>' +
         '<div class="paywall-hero-copy">' +
           '<h2 class="paywall-hero-title">' + heading + '</h2>' +
@@ -1489,7 +1489,7 @@ function render() {
       '<section class="paywall-section paywall-proof">' +
         '<h3 class="paywall-h">С Катей уже тренируются сотни тысяч женщин</h3>' +
         '<div class="paywall-proof-top">' +
-          '<img class="paywall-proof-photo" src="/assets/quiz/hero/hero.jpg" alt="Екатерина Усманова" loading="lazy" decoding="async" />' +
+          '<img class="paywall-proof-photo" src="/assets/quiz/hero/hero.webp" alt="Екатерина Усманова" loading="lazy" decoding="async" />' +
           '<div class="paywall-proof-count">' +
             '<strong>580 000+</strong>' +
             '<span>женщин занимаются по программам Кати Усмановой</span>' +
@@ -1512,7 +1512,7 @@ function render() {
               return (
                 '<div class="paywall-gallery-item">' +
                   '<span class="paywall-gallery-badge">До и после</span>' +
-                  '<img src="/assets/quiz/trust/gallery/student-' + num + '.jpg" alt="Результат участницы" loading="lazy" decoding="async" data-gallery="1" />' +
+                  '<img src="/assets/quiz/trust/gallery/student-' + num + '.webp" alt="Результат участницы" loading="lazy" decoding="async" data-gallery="1" />' +
                 '</div>'
               );
             }).join('') +
@@ -1663,7 +1663,7 @@ function render() {
   const isStart = s.id === 'age';
   const offerHtml = (s.type === 'single_choice' && s.offer) ? '<p class="offer">' + s.offer + '</p>' : '';
   const brandHtml = isStart
-    ? '<div class="brand"><img class="brand-photo" src="/assets/quiz/hero/hero.jpg" alt="Екатерина Усманова" /></div>'
+    ? '<div class="brand"><img class="brand-photo" src="/assets/quiz/hero/hero.webp" alt="Екатерина Усманова" loading="eager" decoding="async" fetchpriority="high" /></div>'
     : '';
   const consentHtml = isStart
     ? '<div class="consent"><span>Продолжая, вы соглашаетесь с обработкой персональных данных.</span>' + legalLinksHtml() + '</div>'

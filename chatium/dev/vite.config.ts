@@ -46,16 +46,18 @@ function serveProjectAssets() {
 
 export default defineConfig({
   root: __dirname,
-  plugins: [serveProjectAssets(), vue()],
+  plugins: [
+    serveProjectAssets(),
+    vue({
+      template: {
+        transformAssetUrls: {
+          includeAbsolute: false,
+        },
+      },
+    }),
+  ],
   server: {
     port: 4174,
     host: '127.0.0.1',
-  },
-  build: {
-    // Абсолютные пути ассетов (/assets/...) отдаёт платформа в рантайме,
-    // поэтому не бандлим их при локальной проверочной сборке.
-    rollupOptions: {
-      external: (id) => id.startsWith('/assets/'),
-    },
   },
 })

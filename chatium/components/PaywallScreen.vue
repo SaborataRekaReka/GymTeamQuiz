@@ -8,7 +8,7 @@
           <div class="paywall-hero-photo">
             <img
               v-if="!isHeroBroken"
-              src="/assets/quiz/result/usmanova_result.png"
+              src="/assets/quiz/result/usmanova_result.webp"
               alt="Екатерина Усманова"
               loading="lazy"
               decoding="async"
@@ -43,7 +43,7 @@
             <img
               v-if="!isProofBroken"
               class="paywall-proof-photo"
-              src="/assets/quiz/hero/hero.jpg"
+              src="/assets/quiz/hero/hero.webp"
               alt="Екатерина Усманова"
               loading="lazy"
               decoding="async"
@@ -262,20 +262,20 @@ const PAYWALL_FACTS = [
 ]
 
 const PAYWALL_GALLERY = [
-  '/assets/quiz/trust/gallery/student-01.jpg',
-  '/assets/quiz/trust/gallery/student-02.jpg',
-  '/assets/quiz/trust/gallery/student-03.jpg',
-  '/assets/quiz/trust/gallery/student-04.jpg',
-  '/assets/quiz/trust/gallery/student-05.jpg',
-  '/assets/quiz/trust/gallery/student-06.jpg',
-  '/assets/quiz/trust/gallery/student-07.jpg',
-  '/assets/quiz/trust/gallery/student-08.jpg',
-  '/assets/quiz/trust/gallery/student-09.jpg',
-  '/assets/quiz/trust/gallery/student-10.jpg',
-  '/assets/quiz/trust/gallery/student-11.jpg',
-  '/assets/quiz/trust/gallery/student-12.jpg',
-  '/assets/quiz/trust/gallery/student-13.jpg',
-  '/assets/quiz/trust/gallery/student-14.jpg',
+  '/assets/quiz/trust/gallery/student-01.webp',
+  '/assets/quiz/trust/gallery/student-02.webp',
+  '/assets/quiz/trust/gallery/student-03.webp',
+  '/assets/quiz/trust/gallery/student-04.webp',
+  '/assets/quiz/trust/gallery/student-05.webp',
+  '/assets/quiz/trust/gallery/student-06.webp',
+  '/assets/quiz/trust/gallery/student-07.webp',
+  '/assets/quiz/trust/gallery/student-08.webp',
+  '/assets/quiz/trust/gallery/student-09.webp',
+  '/assets/quiz/trust/gallery/student-10.webp',
+  '/assets/quiz/trust/gallery/student-11.webp',
+  '/assets/quiz/trust/gallery/student-12.webp',
+  '/assets/quiz/trust/gallery/student-13.webp',
+  '/assets/quiz/trust/gallery/student-14.webp',
 ]
 
 const PAYWALL_SAFETY = [

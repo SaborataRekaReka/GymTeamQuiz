@@ -6,7 +6,7 @@
       <p v-if="offerText" class="quiz-offer">{{ offerText }}</p>
 
       <div v-if="isStart" class="quiz-brand">
-        <img class="quiz-brand-photo" src="/assets/quiz/hero/hero.jpg" alt="Екатерина Усманова" />
+        <img class="quiz-brand-photo" src="/assets/quiz/hero/hero.webp" alt="Екатерина Усманова" loading="eager" decoding="async" fetchpriority="high" />
       </div>
 
       <h1 v-if="screen.title" class="quiz-title">{{ screen.title }}</h1>

@@ -1,7 +1,7 @@
 <template>
   <div class="quiz-header">
     <div class="quiz-header-logo-row" aria-hidden="true">
-      <img class="quiz-header-logo" src="/assets/brand/usmanova-fit-logo.png" alt="" />
+      <img class="quiz-header-logo" src="/assets/brand/usmanova-fit-logo.png" alt="" loading="lazy" decoding="async" />
     </div>
 
     <div class="quiz-header-progress-row">

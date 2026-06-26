@@ -2052,7 +2052,7 @@ html, body {
   width: 74px;
   height: 74px;
   border-radius: 50%;
-  background: #FFFFFF url('/assets/quiz/result/food.png') center / contain no-repeat;
+  background: #FFFFFF url('/assets/quiz/result/food.webp') center / contain no-repeat;
   border: 2px solid rgba(255, 255, 255, 0.88);
   box-shadow: 0 14px 30px rgba(30, 34, 48, 0.06);
 }
@@ -2396,7 +2396,7 @@ html, body {
     width: 340px;
     height: 330px;
     border-radius: 120px 0 0 0;
-    background: url('/assets/quiz/result/gradient_background.png') center / cover no-repeat;
+    background: url('/assets/quiz/result/gradient_background.webp') center / cover no-repeat;
     opacity: 0.95;
     z-index: 0;
   }
@@ -2585,7 +2585,7 @@ html, body {
     width: 290px;
     height: 360px;
     border-radius: 112px 0 0 0;
-    background: url('/assets/quiz/result/gradient_background.png') center / cover no-repeat;
+    background: url('/assets/quiz/result/gradient_background.webp') center / cover no-repeat;
     opacity: 0.88;
     z-index: 0;
   }

@@ -16,7 +16,7 @@ export function Subtitle(props: { text: string; class?: string }) {
   return <p class={props.class ? `quiz-subtitle ${props.class}` : 'quiz-subtitle'}>{props.text}</p>
 }
 
-export const BRAND_PHOTO_SRC = '/assets/quiz/hero/hero.jpg'
+export const BRAND_PHOTO_SRC = '/assets/quiz/hero/hero.webp'
 
 export function OfferEyebrow(props: { text: string }) {
   return <p class="quiz-offer">{props.text}</p>
@@ -25,7 +25,14 @@ export function OfferEyebrow(props: { text: string }) {
 export function BrandHero() {
   return (
     <div class="quiz-brand">
-      <img class="quiz-brand-photo" src={BRAND_PHOTO_SRC} alt="Екатерина Усманова" />
+      <img
+        class="quiz-brand-photo"
+        src={BRAND_PHOTO_SRC}
+        alt="Екатерина Усманова"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      />
     </div>
   )
 }
@@ -86,7 +93,7 @@ export function QuizHeader(props: {
   return (
     <div class="quiz-header">
       <div class="quiz-header-logo-row" aria-hidden="true">
-        <img class="quiz-header-logo" src="/assets/brand/usmanova-fit-logo.png" alt="" />
+        <img class="quiz-header-logo" src="/assets/brand/usmanova-fit-logo.png" alt="" loading="lazy" decoding="async" />
       </div>
 
       <div class="quiz-header-progress-row">

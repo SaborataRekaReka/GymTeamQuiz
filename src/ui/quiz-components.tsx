@@ -657,7 +657,7 @@ export function ResultLayout(props: {
             </div>
 
             <aside class="result-showcase-aside" aria-hidden="true">
-              <img class="result-showcase-photo" src="/assets/quiz/result/usmanova_result.png" alt="" loading="lazy" decoding="async" />
+              <img class="result-showcase-photo" src="/assets/quiz/result/usmanova_result.webp" alt="" loading="lazy" decoding="async" />
             </aside>
           </section>
 
@@ -913,20 +913,20 @@ const PAYWALL_FACTS = [
 ]
 
 const PAYWALL_GALLERY = [
-  '/assets/quiz/trust/gallery/student-01.jpg',
-  '/assets/quiz/trust/gallery/student-02.jpg',
-  '/assets/quiz/trust/gallery/student-03.jpg',
-  '/assets/quiz/trust/gallery/student-04.jpg',
-  '/assets/quiz/trust/gallery/student-05.jpg',
-  '/assets/quiz/trust/gallery/student-06.jpg',
-  '/assets/quiz/trust/gallery/student-07.jpg',
-  '/assets/quiz/trust/gallery/student-08.jpg',
-  '/assets/quiz/trust/gallery/student-09.jpg',
-  '/assets/quiz/trust/gallery/student-10.jpg',
-  '/assets/quiz/trust/gallery/student-11.jpg',
-  '/assets/quiz/trust/gallery/student-12.jpg',
-  '/assets/quiz/trust/gallery/student-13.jpg',
-  '/assets/quiz/trust/gallery/student-14.jpg',
+  '/assets/quiz/trust/gallery/student-01.webp',
+  '/assets/quiz/trust/gallery/student-02.webp',
+  '/assets/quiz/trust/gallery/student-03.webp',
+  '/assets/quiz/trust/gallery/student-04.webp',
+  '/assets/quiz/trust/gallery/student-05.webp',
+  '/assets/quiz/trust/gallery/student-06.webp',
+  '/assets/quiz/trust/gallery/student-07.webp',
+  '/assets/quiz/trust/gallery/student-08.webp',
+  '/assets/quiz/trust/gallery/student-09.webp',
+  '/assets/quiz/trust/gallery/student-10.webp',
+  '/assets/quiz/trust/gallery/student-11.webp',
+  '/assets/quiz/trust/gallery/student-12.webp',
+  '/assets/quiz/trust/gallery/student-13.webp',
+  '/assets/quiz/trust/gallery/student-14.webp',
 ]
 
 const PAYWALL_SAFETY = [
@@ -1102,7 +1102,7 @@ export function PaywallLayout(props: {
             <div class="paywall-hero-photo">
               {!isHeroBroken() ? (
                 <img
-                  src="/assets/quiz/result/usmanova_result.png"
+                  src="/assets/quiz/result/usmanova_result.webp"
                   alt="Екатерина Усманова"
                   loading="lazy"
                   decoding="async"
@@ -1149,7 +1149,7 @@ export function PaywallLayout(props: {
             <h3 class="paywall-h">С Катей уже тренируются сотни тысяч женщин</h3>
             <div class="paywall-proof-top">
               {!isProofBroken() ? (
-                <img class="paywall-proof-photo" src="/assets/quiz/hero/hero.jpg" alt="Екатерина Усманова" loading="lazy" decoding="async" onError={() => setIsProofBroken(true)} />
+                <img class="paywall-proof-photo" src="/assets/quiz/hero/hero.webp" alt="Екатерина Усманова" loading="lazy" decoding="async" onError={() => setIsProofBroken(true)} />
               ) : <span class="paywall-proof-photo" aria-hidden="true" />}
               <div class="paywall-proof-count">
                 <strong>580 000+</strong>

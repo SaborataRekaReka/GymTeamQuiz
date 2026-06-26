@@ -14,7 +14,7 @@
           playsinline
           preload="metadata"
         />
-        <img v-else-if="mediaSrc" class="quiz-trust-photo" :src="mediaSrc" alt="" aria-hidden="true" />
+        <img v-else-if="mediaSrc" class="quiz-trust-photo" :src="mediaSrc" alt="" loading="lazy" decoding="async" aria-hidden="true" />
 
         <h1 v-if="title" class="quiz-title">{{ title }}</h1>
         <p v-if="text && !hasResearchSlides" class="quiz-subtitle">{{ text }}</p>

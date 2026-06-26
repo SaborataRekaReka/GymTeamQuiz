@@ -8,8 +8,8 @@ interface ResearchSlide {
 }
 
 const TRUST_MEDIA_BY_ID: Record<string, string> = {
-  trust_580k: '/assets/quiz/realistic woman scene/womans.jpeg',
-  nutrition_assistant: '/assets/quiz/trust/nutrition-assistant-transition.jpeg',
+  trust_580k: '/assets/quiz/realistic woman scene/womans.webp',
+  nutrition_assistant: '/assets/quiz/trust/nutrition-assistant-transition.webp',
 }
 
 const TRUST_VIDEO_BY_ID: Record<string, string> = {
