@@ -2,32 +2,85 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
-const textExtensions = new Set(['.ts', '.tsx', '.md', '.json'])
-const ignoredDirs = new Set(['node_modules', '.git', 'dist'])
+const textExtensions = new Set(['.ts', '.tsx', '.json'])
+const sourceDirs = ['data', 'src']
 
 const violations = []
 
 function walk(dir) {
+  if (!fs.existsSync(dir)) return
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (ignoredDirs.has(entry.name)) continue
     const full = path.join(dir, entry.name)
     if (entry.isDirectory()) walk(full)
-    else if (textExtensions.has(path.extname(entry.name))) checkFile(full)
+    else if (textExtensions.has(path.extname(entry.name))) checkFile(full, path.relative(root, full))
   }
 }
 
-function checkFile(file) {
+function checkFile(file, rel) {
   const content = fs.readFileSync(file, 'utf8')
-  const rel = path.relative(root, file)
-  if (/[“”\"]/u.test(content) && !rel.endsWith('package.json') && !rel.endsWith('tsconfig.json')) {
-    violations.push(`${rel}: проверьте кавычки в пользовательских текстах. В интерфейсе нужны только «ёлочки».`)
+
+  if (path.extname(file) === '.json') {
+    checkJsonContent(content, rel)
+    return
   }
-  if (/—|-->|→/u.test(content)) {
-    violations.push(`${rel}: в пользовательских текстах запрещены длинные тире и стрелки.`)
+
+  checkTsLikeContent(content, rel)
+}
+
+function checkJsonContent(content, rel) {
+  let parsed
+  try {
+    parsed = JSON.parse(content)
+  } catch {
+    return
+  }
+
+  visitJson(parsed, '', (value, valuePath) => {
+    checkUserText(value, `${rel}${valuePath}`)
+  })
+}
+
+function visitJson(value, currentPath, onString) {
+  if (typeof value === 'string') {
+    onString(value, currentPath)
+    return
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => visitJson(entry, `${currentPath}[${index}]`, onString))
+    return
+  }
+
+  if (value && typeof value === 'object') {
+    for (const [key, nested] of Object.entries(value)) {
+      const suffix = currentPath ? `.${key}` : `.${key}`
+      visitJson(nested, `${currentPath}${suffix}`, onString)
+    }
   }
 }
 
-walk(root)
+function checkTsLikeContent(content, rel) {
+  const stringLiteralRegex = /(['"`])((?:\\.|(?!\1)[\s\S])*)\1/g
+  for (const match of content.matchAll(stringLiteralRegex)) {
+    const literal = match[2]
+    checkUserText(literal, rel)
+  }
+}
+
+function checkUserText(value, sourceRef) {
+  if (!/[А-Яа-яЁё]/u.test(value)) return
+
+  if (/[“”"]/u.test(value)) {
+    violations.push(`${sourceRef}: проверьте кавычки в пользовательских текстах. В интерфейсе нужны только «ёлочки».`)
+  }
+  if (/—|-->|→/u.test(value)) {
+    violations.push(`${sourceRef}: в пользовательских текстах запрещены длинные тире и стрелки.`)
+  }
+}
+
+for (const relativeDir of sourceDirs) {
+  walk(path.join(root, relativeDir))
+}
 
 if (violations.length) {
   console.error(violations.join('\n'))

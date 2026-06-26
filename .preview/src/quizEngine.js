@@ -1,0 +1,191 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createInitialState = createInitialState;
+exports.getCurrentScreen = getCurrentScreen;
+exports.getScreenById = getScreenById;
+exports.validateRequiredForScreen = validateRequiredForScreen;
+exports.validateRequiredState = validateRequiredState;
+exports.saveAnswer = saveAnswer;
+exports.canMoveNext = canMoveNext;
+exports.moveNext = moveNext;
+exports.moveBack = moveBack;
+exports.calculateProgressPercent = calculateProgressPercent;
+function nowIso() {
+    return new Date().toISOString();
+}
+function buildIssue(screenId, field, message) {
+    return { screenId, field, message };
+}
+function uniqueCompleted(ids, nextId) {
+    return ids.includes(nextId) ? ids : [...ids, nextId];
+}
+function isLeadGateAnswer(value) {
+    return typeof value === 'object' && value !== null && 'name' in value && 'email' in value && 'consentAccepted' in value;
+}
+function validateSingle(screen, value) {
+    if (screen.kind !== 'single')
+        return [];
+    if (typeof value !== 'string' || !value.trim()) {
+        return [buildIssue(screen.id, 'value', 'Выберите один вариант.')];
+    }
+    if (!screen.options.includes(value)) {
+        return [buildIssue(screen.id, 'value', 'Выбран неизвестный вариант ответа.')];
+    }
+    return [];
+}
+function validateMultiple(screen, value) {
+    if (screen.kind !== 'multiple')
+        return [];
+    if (!Array.isArray(value) || value.length === 0) {
+        return [buildIssue(screen.id, 'value', 'Выберите хотя бы один вариант.')];
+    }
+    const hasUnknown = value.some((entry) => typeof entry !== 'string' || !screen.options.includes(entry));
+    if (hasUnknown) {
+        return [buildIssue(screen.id, 'value', 'Найден неизвестный вариант ответа.')];
+    }
+    return [];
+}
+function validateInput(screen, value) {
+    if (screen.kind !== 'input')
+        return [];
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return [buildIssue(screen.id, 'value', 'Введите корректное числовое значение.')];
+    }
+    if (screen.min !== undefined && value < screen.min) {
+        return [buildIssue(screen.id, 'value', `Значение должно быть не меньше ${screen.min}.`)];
+    }
+    if (screen.max !== undefined && value > screen.max) {
+        return [buildIssue(screen.id, 'value', `Значение должно быть не больше ${screen.max}.`)];
+    }
+    return [];
+}
+function validateLeadGate(screen, value) {
+    if (screen.kind !== 'leadGate')
+        return [];
+    if (!isLeadGateAnswer(value)) {
+        return [buildIssue(screen.id, 'lead_gate', 'Заполните имя, почту и согласие на обработку данных.')];
+    }
+    const issues = [];
+    const name = value.name.trim();
+    const email = value.email.trim();
+    if (!name) {
+        issues.push(buildIssue(screen.id, 'name', 'Введите ваше имя.'));
+    }
+    if (!email) {
+        issues.push(buildIssue(screen.id, 'email', 'Введите вашу почту.'));
+    }
+    else if (!/^\S+@\S+\.\S+$/.test(email)) {
+        issues.push(buildIssue(screen.id, 'email', 'Введите почту в корректном формате.'));
+    }
+    if (screen.consentRequired && !value.consentAccepted) {
+        issues.push(buildIssue(screen.id, 'consentAccepted', 'Подтвердите согласие на обработку персональных данных.'));
+    }
+    return issues;
+}
+function createInitialState(utm = {}) {
+    const created = nowIso();
+    return {
+        currentScreenIndex: 0,
+        answersByScreen: {},
+        completedScreenIds: [],
+        startedAt: created,
+        updatedAt: created,
+        utm,
+    };
+}
+function getCurrentScreen(config, state) {
+    return config.screens[state.currentScreenIndex] ?? config.screens[0];
+}
+function getScreenById(config, screenId) {
+    return config.screens.find((screen) => screen.id === screenId);
+}
+function validateRequiredForScreen(screen, value) {
+    if (!screen.required)
+        return [];
+    if (value === undefined) {
+        return [buildIssue(screen.id, 'value', 'Поле обязательно для заполнения.')];
+    }
+    const validators = [validateSingle(screen, value), validateMultiple(screen, value), validateInput(screen, value), validateLeadGate(screen, value)];
+    return validators.flat();
+}
+function validateRequiredState(config, state) {
+    const issues = [];
+    for (const screen of config.screens) {
+        const value = state.answersByScreen[screen.id];
+        issues.push(...validateRequiredForScreen(screen, value));
+    }
+    return issues;
+}
+function saveAnswer(config, state, screenId, value) {
+    const screen = getScreenById(config, screenId);
+    if (!screen) {
+        return {
+            state,
+            saved: false,
+            issues: [buildIssue(screenId, 'screen', 'Экран не найден в конфигурации.')],
+        };
+    }
+    const issues = validateRequiredForScreen(screen, value);
+    if (issues.length > 0) {
+        return { state, saved: false, issues };
+    }
+    const updated = {
+        ...state,
+        answersByScreen: {
+            ...state.answersByScreen,
+            [screenId]: value,
+        },
+        completedScreenIds: uniqueCompleted(state.completedScreenIds, screenId),
+        updatedAt: nowIso(),
+    };
+    return {
+        state: updated,
+        saved: true,
+        issues: [],
+    };
+}
+function canMoveNext(config, state) {
+    const screen = getCurrentScreen(config, state);
+    const value = state.answersByScreen[screen.id];
+    return validateRequiredForScreen(screen, value);
+}
+function moveNext(config, state) {
+    const issues = canMoveNext(config, state);
+    if (issues.length > 0) {
+        return {
+            state,
+            moved: false,
+            issues,
+        };
+    }
+    const nextIndex = Math.min(state.currentScreenIndex + 1, config.screens.length - 1);
+    const nextState = {
+        ...state,
+        currentScreenIndex: nextIndex,
+        updatedAt: nowIso(),
+    };
+    return {
+        state: nextState,
+        moved: nextIndex !== state.currentScreenIndex,
+        issues: [],
+    };
+}
+function moveBack(state) {
+    const previousIndex = Math.max(state.currentScreenIndex - 1, 0);
+    const nextState = {
+        ...state,
+        currentScreenIndex: previousIndex,
+        updatedAt: nowIso(),
+    };
+    return {
+        state: nextState,
+        moved: previousIndex !== state.currentScreenIndex,
+        issues: [],
+    };
+}
+function calculateProgressPercent(config, state) {
+    if (config.screens.length === 0)
+        return 0;
+    const progress = ((state.currentScreenIndex + 1) / config.screens.length) * 100;
+    return Math.max(0, Math.min(100, Math.round(progress)));
+}

@@ -73,7 +73,7 @@ carbCalories = calorieNorm − proteinCalories − fatCalories
 carbGrams = carbCalories / 4
 ```
 
-## Индекс массы тела
+## ИМТ
 
 ```text
 BMI = currentWeight / (heightInMeters × heightInMeters)

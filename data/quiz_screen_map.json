@@ -7,7 +7,6 @@
       "id": "age",
       "type": "single_choice",
       "role": "start_question",
-      "offer": "Похудейте и уберите живот с тренировками Кати Усмановой",
       "media": "Фото Кати Усмановой и логотип «Усманова Фит».",
       "question": "Сколько вам лет?",
       "subtitle": "Под ваш возраст подберём посильную нагрузку: то, что в 30 лет даёт результат лёгкой ходьбой, в 50 работает иначе.",
@@ -33,6 +32,12 @@
         "Есть заметный лишний вес",
         "Набрала больше, чем хотелось бы"
       ],
+      "option_icons": [
+        "/assets/quiz/2/1.png",
+        "/assets/quiz/2/2.png",
+        "/assets/quiz/2/3.png",
+        "/assets/quiz/2/4.png"
+      ],
       "multiple": false
     },
     {
@@ -46,6 +51,12 @@
         "Подтянутое, с тонусом",
         "С формами, но без лишнего",
         "Просто здоровое и без боли в спине"
+      ],
+      "option_icons": [
+        "/assets/quiz/3/1.png",
+        "/assets/quiz/3/2.png",
+        "/assets/quiz/3/3.png",
+        "/assets/quiz/3/4.png"
       ],
       "multiple": false
     },
@@ -62,6 +73,14 @@
         "Руки",
         "Спина и осанка",
         "Всё тело"
+      ],
+      "option_icons": [
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/tape-measure.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/woman-figure2.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/running-woman.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/strength.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/shoulders-back.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/woman-figure.svg"
       ],
       "multiple": true
     },
@@ -116,6 +135,12 @@
         "Иногда тренируюсь, нерегулярно",
         "Двигаюсь много"
       ],
+      "option_icons": [
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/meditation.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/route.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/calendar-workouts.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/running-man.svg"
+      ],
       "multiple": false
     },
     {
@@ -129,6 +154,12 @@
         "Сплю мало, но держусь",
         "Часто не высыпаюсь",
         "Почти не высыпаюсь"
+      ],
+      "option_icons": [
+        "/assets/icons/quiz/flaticon-lineal/sleep-good.svg",
+        "/assets/icons/quiz/flaticon-lineal/sleep-short.svg",
+        "/assets/icons/quiz/flaticon-lineal/sleep-often-bad.svg",
+        "/assets/icons/quiz/flaticon-lineal/sleep-severe.svg"
       ],
       "multiple": false
     },
@@ -152,6 +183,12 @@
         "Подтянутое тело, тонус",
         "Плоский живот и талия",
         "Лёгкость и энергия"
+      ],
+      "option_icons": [
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/weight-loss.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/woman-figure2.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/tape-measure.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/heart-healthy.svg"
       ],
       "multiple": false,
       "note": "Это про итоговую визуализацию результата."
@@ -230,6 +267,12 @@
         "И дома, и в зале",
         "На улице"
       ],
+      "option_icons": [
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/yoga-pose.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/treadmill.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/exercise-mat.svg",
+        "/assets/icons/fitness_icons/Fitness-icons/SVG/running-woman.svg"
+      ],
       "multiple": false
     },
     {
@@ -252,12 +295,15 @@
       "id": "plan_loader",
       "type": "loader",
       "title": "Собираем ваш план",
+      "text": "Сверяем ваши ответы и собираем программу под вашу цель.",
       "progress_type": "percent",
       "steps": [
         "Подбираем тренировки под ваши зоны",
         "Считаем калории и норму питания",
+        "Настраиваем темп нагрузки под ваш уровень",
         "Рассчитываем, когда вы увидите результат"
-      ]
+      ],
+      "button": "Получить готовый план"
     },
     {
       "number": 21,
@@ -271,14 +317,6 @@
       ],
       "consent_required": true,
       "note": "Почта нужна только для входа, писем не отправляем. Не писать «пришлём на почту»."
-    },
-    {
-      "number": 22,
-      "id": "final_loader",
-      "type": "loader",
-      "text": "Готово! Ваш план собран",
-      "media": "Фото фигуры до и после.",
-      "button": "Показать мой план"
     },
     {
       "number": 23,
