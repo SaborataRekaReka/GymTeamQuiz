@@ -2011,6 +2011,14 @@ function render() {
       setTimeout(syncPaywallGalleryArrows, 240);
     };
 
+    let galleryDragPointerId = null;
+    let galleryDragStartX = 0;
+    let galleryDragStartY = 0;
+    let galleryDragStartScrollLeft = 0;
+    let galleryDragActive = false;
+    let galleryDragNextScrollLeft = 0;
+    let galleryDragRafId = null;
+
     if (paywallGalleryArrowNext) {
       paywallGalleryArrowNext.addEventListener('click', () => scrollPaywallGallery(1));
     }
@@ -2018,6 +2026,77 @@ function render() {
     if (paywallGalleryArrowPrev) {
       paywallGalleryArrowPrev.addEventListener('click', () => scrollPaywallGallery(-1));
     }
+
+    paywallGalleryList.addEventListener('dragstart', (event) => {
+      event.preventDefault();
+    });
+
+    paywallGalleryList.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+      galleryDragPointerId = event.pointerId;
+      galleryDragStartX = event.clientX;
+      galleryDragStartY = event.clientY;
+      galleryDragStartScrollLeft = paywallGalleryList.scrollLeft;
+      galleryDragActive = false;
+
+      if (galleryDragRafId !== null) {
+        cancelAnimationFrame(galleryDragRafId);
+        galleryDragRafId = null;
+      }
+    });
+
+    const stopGalleryDrag = (event) => {
+      if (galleryDragPointerId !== event.pointerId) return;
+
+      if (galleryDragRafId !== null) {
+        cancelAnimationFrame(galleryDragRafId);
+        galleryDragRafId = null;
+      }
+
+      if (galleryDragActive && paywallGalleryList.hasPointerCapture(event.pointerId)) {
+        paywallGalleryList.releasePointerCapture(event.pointerId);
+      }
+
+      paywallGalleryList.classList.remove('is-dragging');
+      galleryDragPointerId = null;
+      galleryDragActive = false;
+      syncPaywallGalleryArrows();
+    };
+
+    paywallGalleryList.addEventListener('pointermove', (event) => {
+      if (galleryDragPointerId !== event.pointerId) return;
+
+      const deltaX = event.clientX - galleryDragStartX;
+      const deltaY = event.clientY - galleryDragStartY;
+
+      if (!galleryDragActive) {
+        const passedThreshold = Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6;
+        if (!passedThreshold) return;
+
+        if (Math.abs(deltaX) <= Math.abs(deltaY)) {
+          galleryDragPointerId = null;
+          return;
+        }
+
+        galleryDragActive = true;
+        paywallGalleryList.setPointerCapture(event.pointerId);
+        paywallGalleryList.classList.add('is-dragging');
+      }
+
+      event.preventDefault();
+      galleryDragNextScrollLeft = galleryDragStartScrollLeft - deltaX;
+
+      if (galleryDragRafId !== null) return;
+      galleryDragRafId = requestAnimationFrame(() => {
+        galleryDragRafId = null;
+        paywallGalleryList.scrollLeft = galleryDragNextScrollLeft;
+        syncPaywallGalleryArrows();
+      });
+    });
+
+    paywallGalleryList.addEventListener('pointerup', stopGalleryDrag);
+    paywallGalleryList.addEventListener('pointercancel', stopGalleryDrag);
 
     paywallGalleryList.addEventListener('scroll', syncPaywallGalleryArrows, { passive: true });
     syncPaywallGalleryArrows();

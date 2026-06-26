@@ -3552,10 +3552,29 @@ html, body {
       margin: 0 -2px;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      touch-action: pan-y;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .paywall-gallery * {
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .paywall-gallery::-webkit-scrollbar {
       display: none;
+    }
+
+    .paywall-gallery.is-dragging {
+      cursor: grabbing;
+      user-select: none;
+      scroll-behavior: auto;
+    }
+
+    .paywall-gallery.is-dragging .paywall-gallery-item {
+      pointer-events: none;
     }
 
     .paywall-gallery-item {

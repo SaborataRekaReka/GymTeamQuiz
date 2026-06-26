@@ -64,7 +64,16 @@
           <div class="paywall-gallery-head">Результаты участниц</div>
           <p class="paywall-gallery-hint">Реальные фотографии участниц программ Кати Усмановой.</p>
           <div class="result-programs-carousel">
-            <div ref="galleryListRef" class="paywall-gallery" @scroll="syncGalleryArrows">
+            <div
+              ref="galleryListRef"
+              class="paywall-gallery"
+              @scroll="syncGalleryArrows"
+              @dragstart.prevent
+              @pointerdown="onGalleryPointerDown"
+              @pointermove="onGalleryPointerMove"
+              @pointerup="onGalleryPointerEnd"
+              @pointercancel="onGalleryPointerEnd"
+            >
               <template v-for="(src, index) in PAYWALL_GALLERY" :key="src">
                 <div v-if="!isGalleryBroken(index)" class="paywall-gallery-item">
                   <span class="paywall-gallery-badge">До и после</span>
@@ -130,7 +139,15 @@
           <h3 class="paywall-h">Программы, которые подойдут вам</h3>
           <p class="paywall-sub">Мы выбрали их по вашей цели, зонам и формату тренировок.</p>
           <div class="result-programs-carousel">
-            <div ref="programsListRef" class="result-programs-list">
+            <div
+              ref="programsListRef"
+              class="result-programs-list"
+              @dragstart.prevent
+              @pointerdown="onProgramsPointerDown"
+              @pointermove="onProgramsPointerMove"
+              @pointerup="onProgramsPointerEnd"
+              @pointercancel="onProgramsPointerEnd"
+            >
               <article v-for="program in programs" :key="program.id" class="result-program" :draggable="false">
                 <div class="result-program-image-wrap" aria-hidden="true">
                   <img
@@ -358,32 +375,225 @@ function onSelectTariff(name: string) {
   selectedTariff.value = name
   formOpenKey.value += 1
 }
+
+const showGalleryLeftArrow = ref(false)
+interface CarouselDragState {
+  pointerId?: number
+  startX: number
+  startY: number
+  startScrollLeft: number
+  startIndex: number
+  lastDeltaX: number
+  active: boolean
+  rafId: number | null
+  nextScrollLeft: number
+  itemSelector: string
+}
+
+function createDragState(itemSelector: string): CarouselDragState {
+  return {
+    pointerId: undefined,
+    startX: 0,
+    startY: 0,
+    startScrollLeft: 0,
+    startIndex: 0,
+    lastDeltaX: 0,
+    active: false,
+    rafId: null,
+    nextScrollLeft: 0,
+    itemSelector,
+  }
+}
+
+const programsDrag = createDragState('.result-program')
+const galleryDrag = createDragState('.paywall-gallery-item')
+
+function getSnapStep(list: HTMLElement, itemSelector: string): number {
+  const firstCard = list.querySelector<HTMLElement>(itemSelector)
+  if (!firstCard) return 0
+  const styles = getComputedStyle(list)
+  const gap = Number.parseFloat(styles.columnGap || styles.gap || '0')
+  return firstCard.offsetWidth + (Number.isFinite(gap) ? gap : 0)
+}
+
+function getScrollIndexBounds(list: HTMLElement, step: number): number {
+  if (step <= 0) return 0
+  const maxScroll = Math.max(0, list.scrollWidth - list.clientWidth)
+  return Math.max(0, Math.round(maxScroll / step))
+}
+
+function snapCarouselToSlide(list: HTMLElement, state: CarouselDragState, afterScroll?: () => void) {
+  const step = getSnapStep(list, state.itemSelector)
+  if (step <= 0) {
+    if (afterScroll) afterScroll()
+    return
+  }
+
+  const currentIndex = Math.round(list.scrollLeft / step)
+  const dragThreshold = Math.min(72, step * 0.22)
+  const movedEnough = Math.abs(state.lastDeltaX) >= dragThreshold
+  let targetIndex = currentIndex
+
+  if (movedEnough) {
+    const direction = state.lastDeltaX < 0 ? 1 : -1
+    targetIndex = state.startIndex + direction
+  }
+
+  const maxIndex = getScrollIndexBounds(list, step)
+  targetIndex = Math.max(0, Math.min(maxIndex, targetIndex))
+
+  list.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
+  setTimeout(() => {
+    if (afterScroll) afterScroll()
+  }, 280)
+}
+
+function onCarouselPointerDown(event: PointerEvent, list: HTMLElement, state: CarouselDragState) {
+  if (event.pointerType === 'mouse' && event.button !== 0) return
+
+  state.pointerId = event.pointerId
+  state.startX = event.clientX
+  state.startY = event.clientY
+  state.startScrollLeft = list.scrollLeft
+  const step = getSnapStep(list, state.itemSelector)
+  state.startIndex = step > 0 ? Math.round(list.scrollLeft / step) : 0
+  state.lastDeltaX = 0
+  state.active = false
+
+  if (state.rafId !== null) {
+    cancelAnimationFrame(state.rafId)
+    state.rafId = null
+  }
+}
+
+function onCarouselPointerMove(
+  event: PointerEvent,
+  list: HTMLElement,
+  state: CarouselDragState,
+  afterScroll?: () => void,
+) {
+  if (state.pointerId !== event.pointerId) return
+
+  const deltaX = event.clientX - state.startX
+  const deltaY = event.clientY - state.startY
+
+  if (!state.active) {
+    const passedThreshold = Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6
+    if (!passedThreshold) return
+
+    if (Math.abs(deltaX) <= Math.abs(deltaY)) {
+      state.pointerId = undefined
+      return
+    }
+
+    state.active = true
+    list.setPointerCapture(event.pointerId)
+    list.classList.add('is-dragging')
+  }
+
+  event.preventDefault()
+  state.lastDeltaX = deltaX
+  state.nextScrollLeft = state.startScrollLeft - deltaX
+
+  if (state.rafId !== null) return
+  state.rafId = requestAnimationFrame(() => {
+    state.rafId = null
+    list.scrollLeft = state.nextScrollLeft
+    if (afterScroll) afterScroll()
+  })
+}
+
+function onCarouselPointerEnd(
+  event: PointerEvent,
+  list: HTMLElement,
+  state: CarouselDragState,
+  afterEnd?: () => void,
+) {
+  if (state.pointerId !== event.pointerId) return
+
+  if (state.rafId !== null) {
+    cancelAnimationFrame(state.rafId)
+    state.rafId = null
+  }
+
+  if (state.active && list.hasPointerCapture(event.pointerId)) {
+    list.releasePointerCapture(event.pointerId)
+  }
+
+  list.classList.remove('is-dragging')
+  state.pointerId = undefined
+  state.active = false
+
+  snapCarouselToSlide(list, state, afterEnd)
+}
+
+function getProgramsSnapStep(): number {
+  if (!programsListRef.value) return 0
+  return getSnapStep(programsListRef.value, '.result-program')
+}
+
+function onProgramsPointerDown(event: PointerEvent) {
+  if (!programsListRef.value) return
+  onCarouselPointerDown(event, programsListRef.value, programsDrag)
+}
+
+function onProgramsPointerMove(event: PointerEvent) {
+  if (!programsListRef.value) return
+  onCarouselPointerMove(event, programsListRef.value, programsDrag)
+}
+
+function onProgramsPointerEnd(event: PointerEvent) {
+  if (!programsListRef.value) return
+  onCarouselPointerEnd(event, programsListRef.value, programsDrag)
+}
+
 function scrollPrograms(direction: -1 | 1) {
   if (!programsListRef.value) return
+  const step = getProgramsSnapStep()
+  if (step > 0) {
+    const currentIndex = Math.round(programsListRef.value.scrollLeft / step)
+    const maxIndex = getScrollIndexBounds(programsListRef.value, step)
+    const targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction))
+    programsListRef.value.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
+    return
+  }
+
   const shift = Math.max(220, Math.round(programsListRef.value.clientWidth * 0.82))
   programsListRef.value.scrollBy({ left: shift * direction, behavior: 'smooth' })
 }
 
-const showGalleryLeftArrow = ref(false)
 function getGallerySnapStep(): number {
   if (!galleryListRef.value) return 0
-  const firstCard = galleryListRef.value.querySelector<HTMLElement>('.paywall-gallery-item')
-  if (!firstCard) return 0
-  const styles = getComputedStyle(galleryListRef.value)
-  const gap = Number.parseFloat(styles.columnGap || styles.gap || '0')
-  return firstCard.offsetWidth + (Number.isFinite(gap) ? gap : 0)
+  return getSnapStep(galleryListRef.value, '.paywall-gallery-item')
 }
 function syncGalleryArrows() {
   if (!galleryListRef.value) return
   showGalleryLeftArrow.value = galleryListRef.value.scrollLeft > 8
 }
+
+function onGalleryPointerDown(event: PointerEvent) {
+  if (!galleryListRef.value) return
+  onCarouselPointerDown(event, galleryListRef.value, galleryDrag)
+}
+
+function onGalleryPointerMove(event: PointerEvent) {
+  if (!galleryListRef.value) return
+  onCarouselPointerMove(event, galleryListRef.value, galleryDrag, syncGalleryArrows)
+}
+
+function onGalleryPointerEnd(event: PointerEvent) {
+  if (!galleryListRef.value) return
+  onCarouselPointerEnd(event, galleryListRef.value, galleryDrag, syncGalleryArrows)
+}
+
 function scrollGallery(direction: -1 | 1) {
   if (!galleryListRef.value) return
   const step = getGallerySnapStep()
   if (step > 0) {
     const currentIndex = Math.round(galleryListRef.value.scrollLeft / step)
-    const targetIndex = Math.max(0, currentIndex + direction)
-    galleryListRef.value.scrollTo({ left: targetIndex * step, behavior: 'auto' })
+    const maxIndex = getScrollIndexBounds(galleryListRef.value, step)
+    const targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction))
+    galleryListRef.value.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
     setTimeout(syncGalleryArrows, 240)
     return
   }
