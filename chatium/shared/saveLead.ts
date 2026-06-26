@@ -23,7 +23,7 @@ export interface LeadUpsertBody {
   status?: 'draft' | 'completed'
 }
 
-const UPSERT_URL = '/api/leads/upsert'
+const UPSERT_URL = '/api/leads/upsert.php'
 
 export async function upsertLead(body: LeadUpsertBody): Promise<{ ok: boolean; leadId?: string }> {
   if (typeof fetch === 'undefined') {
