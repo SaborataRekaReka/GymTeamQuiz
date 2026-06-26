@@ -8,7 +8,8 @@
     "lint:content": "node scripts/check-content-rules.mjs",
     "check": "npm run typecheck && npm run lint:content",
     "preview:vue": "vite --config chatium/dev/vite.config.ts",
-    "build:assets:one-folder": "node scripts/build-assets-one-folder.mjs"
+    "build:assets:one-folder": "node scripts/build-assets-one-folder.mjs",
+    "build:assets:by-screen": "node scripts/build-assets-by-screen.mjs"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.0",

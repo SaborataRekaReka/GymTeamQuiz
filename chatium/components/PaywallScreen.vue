@@ -167,10 +167,10 @@
           </div>
         </section>
 
-        <section ref="formRef" class="paywall-section">
+        <section class="paywall-section">
           <h3 class="paywall-h">Оформление доступа</h3>
-          <p class="paywall-sub">Заполните форму ниже, чтобы перейти к оплате.</p>
-          <GetCourseForm />
+          <p class="paywall-sub">Форма оплаты откроется в модальном окне.</p>
+          <GetCourseForm :selected-tariff-name="selectedTariff" :selected-tariff-period="selectedTariffPeriod" :open-key="formOpenKey" />
         </section>
 
         <section class="paywall-section">
@@ -322,12 +322,15 @@ const orientirSvgStyle = {
   strokeLinejoin: 'round' as const,
 }
 
-const selectedTariff = ref('Популярно')
+const selectedTariff = ref(props.tariffs.find((tariff) => tariff.name === 'Популярно')?.name ?? props.tariffs[0]?.name ?? '')
+const selectedTariffPeriod = computed(
+  () => props.tariffs.find((tariff) => tariff.name === selectedTariff.value)?.period ?? '',
+)
+const formOpenKey = ref(0)
 const isHeroBroken = ref(false)
 const isProofBroken = ref(false)
 
 const tariffsRef = ref<HTMLElement | null>(null)
-const formRef = ref<HTMLElement | null>(null)
 const programsListRef = ref<HTMLDivElement | null>(null)
 const galleryListRef = ref<HTMLDivElement | null>(null)
 
@@ -353,7 +356,7 @@ function scrollTo(element: HTMLElement | null) {
 }
 function onSelectTariff(name: string) {
   selectedTariff.value = name
-  scrollTo(formRef.value)
+  formOpenKey.value += 1
 }
 function scrollPrograms(direction: -1 | 1) {
   if (!programsListRef.value) return

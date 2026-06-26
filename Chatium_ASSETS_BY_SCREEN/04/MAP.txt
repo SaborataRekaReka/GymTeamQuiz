@@ -1,0 +1,9 @@
+/assets/brand/usmanova-fit-logo.png => brand__usmanova-fit-logo.png
+/assets/icons/fitness_icons/Fitness-icons/SVG/running-woman.svg => icons__fitness_icons__Fitness-icons__SVG__running-woman.svg
+/assets/icons/fitness_icons/Fitness-icons/SVG/shoulders-back.svg => icons__fitness_icons__Fitness-icons__SVG__shoulders-back.svg
+/assets/icons/fitness_icons/Fitness-icons/SVG/strength.svg => icons__fitness_icons__Fitness-icons__SVG__strength.svg
+/assets/icons/fitness_icons/Fitness-icons/SVG/tape-measure.svg => icons__fitness_icons__Fitness-icons__SVG__tape-measure.svg
+/assets/icons/fitness_icons/Fitness-icons/SVG/woman-figure.svg => icons__fitness_icons__Fitness-icons__SVG__woman-figure.svg
+/assets/icons/fitness_icons/Fitness-icons/SVG/woman-figure2.svg => icons__fitness_icons__Fitness-icons__SVG__woman-figure2.svg
+/assets/icons/huge/back.svg => icons__huge__back.svg
+/assets/icons/huge/check.svg => icons__huge__check.svg

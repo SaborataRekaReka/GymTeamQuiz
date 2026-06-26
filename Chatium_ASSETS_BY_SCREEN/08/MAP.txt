@@ -1,0 +1,7 @@
+/assets/brand/usmanova-fit-logo.png => brand__usmanova-fit-logo.png
+/assets/icons/fitness_icons/Fitness-icons/SVG/calendar-workouts.svg => icons__fitness_icons__Fitness-icons__SVG__calendar-workouts.svg
+/assets/icons/fitness_icons/Fitness-icons/SVG/meditation.svg => icons__fitness_icons__Fitness-icons__SVG__meditation.svg
+/assets/icons/fitness_icons/Fitness-icons/SVG/route.svg => icons__fitness_icons__Fitness-icons__SVG__route.svg
+/assets/icons/fitness_icons/Fitness-icons/SVG/running-man.svg => icons__fitness_icons__Fitness-icons__SVG__running-man.svg
+/assets/icons/huge/back.svg => icons__huge__back.svg
+/assets/icons/huge/check.svg => icons__huge__check.svg

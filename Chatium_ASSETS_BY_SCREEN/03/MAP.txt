@@ -1,0 +1,7 @@
+/assets/brand/usmanova-fit-logo.png => brand__usmanova-fit-logo.png
+/assets/icons/huge/back.svg => icons__huge__back.svg
+/assets/icons/huge/check.svg => icons__huge__check.svg
+/assets/quiz/3/1.png => quiz__3__1.png
+/assets/quiz/3/2.png => quiz__3__2.png
+/assets/quiz/3/3.png => quiz__3__3.png
+/assets/quiz/3/4.png => quiz__3__4.png

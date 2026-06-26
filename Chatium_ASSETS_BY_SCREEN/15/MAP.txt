@@ -1,0 +1,4 @@
+/assets/brand/usmanova-fit-logo.png => brand__usmanova-fit-logo.png
+/assets/icons/huge/back.svg => icons__huge__back.svg
+/assets/icons/huge/check.svg => icons__huge__check.svg
+/assets/quiz/trust/nutrition-assistant-transition.webp => quiz__trust__nutrition-assistant-transition.webp

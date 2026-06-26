@@ -48,14 +48,8 @@ export const indexRoute = app
 
           <script>{`window.__QUIZ_BOOT__ = ${JSON.stringify({ utm })};`}</script>
 
-          {/* Скрытый контейнер формы GetCourse. Vue-компонент GetCourseForm.vue
-              перенесёт узел #gcPaywallForm в видимую область на экране пейволла.
-              Вставьте сюда боевой скрипт формы GetCourse, когда заказчик его выдаст. */}
-          <div id="allGetcourseForms">
-            <div id="gcPaywallForm" style="display:none">
-              {/* <script id="ВАШ_GC_SCRIPT_ID" src="https://ВАША_ШКОЛА.getcourse.ru/pl/lite/widget/script?id=XXXXX"></script> */}
-            </div>
-          </div>
+          {/* GetCourse-виджеты загружаются на клиенте в GetCourseForm.vue
+              по выбранному тарифу (7 дней, 1 месяц, 6 месяцев). */}
         </body>
       </html>,
     )

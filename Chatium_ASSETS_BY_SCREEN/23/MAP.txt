@@ -1,0 +1,13 @@
+/assets/brand/usmanova-fit-logo.png => brand__usmanova-fit-logo.png
+/assets/icons/huge/back.svg => icons__huge__back.svg
+/assets/icons/huge/check.svg => icons__huge__check.svg
+/assets/icons/result/lock.svg => icons__result__lock.svg
+/assets/quiz/before/current_01_slim_soft.png.png => quiz__before__current_01_slim_soft.png.png
+/assets/quiz/before/current_02_soft.png.png => quiz__before__current_02_soft.png.png
+/assets/quiz/before/current_03_fuller.png.png => quiz__before__current_03_fuller.png.png
+/assets/quiz/before/target_01_slim_light.png.png => quiz__before__target_01_slim_light.png.png
+/assets/quiz/before/target_02_toned_fit.png.png => quiz__before__target_02_toned_fit.png.png
+/assets/quiz/result/duga.svg => quiz__result__duga.svg
+/assets/quiz/result/food.webp => quiz__result__food.webp
+/assets/quiz/result/gradient_background.webp => quiz__result__gradient_background.webp
+/assets/quiz/result/usmanova_result.webp => quiz__result__usmanova_result.webp

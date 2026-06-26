@@ -1,0 +1,7 @@
+/assets/brand/usmanova-fit-logo.png => brand__usmanova-fit-logo.png
+/assets/icons/huge/back.svg => icons__huge__back.svg
+/assets/icons/huge/check.svg => icons__huge__check.svg
+/assets/icons/quiz/flaticon-lineal/sleep-good.svg => icons__quiz__flaticon-lineal__sleep-good.svg
+/assets/icons/quiz/flaticon-lineal/sleep-often-bad.svg => icons__quiz__flaticon-lineal__sleep-often-bad.svg
+/assets/icons/quiz/flaticon-lineal/sleep-severe.svg => icons__quiz__flaticon-lineal__sleep-severe.svg
+/assets/icons/quiz/flaticon-lineal/sleep-short.svg => icons__quiz__flaticon-lineal__sleep-short.svg
