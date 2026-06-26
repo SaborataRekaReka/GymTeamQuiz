@@ -1406,15 +1406,10 @@ function render() {
 
     const heading = firstName ? firstName + ', ваш план готов' : 'Ваш план готов';
     const orientir = isLoss
-      ? 'Ваш ориентир: с ' + currentWeight + ' до ' + targetWeight + ' кг'
+      ? 'Похудеть до ' + targetWeight + ' кг и сохранить форму'
       : isGain
-        ? 'Ваш ориентир: набрать ' + diff + ' кг к комфортной форме'
-        : 'Ваш ориентир: сохранить вес и улучшить форму';
-    const goalLine = isLoss
-      ? 'Цель: минус ' + diff + ' кг'
-      : isGain
-        ? 'Цель: набрать ' + diff + ' кг к комфортной форме'
-        : 'Фокус: сохранить вес и улучшить форму';
+        ? 'Набрать до ' + targetWeight + ' кг и сохранить форму'
+        : 'Сохранить вес ' + targetWeight + ' кг и улучшить форму';
 
     const includeSvgs = [
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M9 9h7M9 13h7M9 17h4"/></svg>',
@@ -1435,11 +1430,6 @@ function render() {
       'Профессиональный тренер с опытом более 15 лет',
       'Автор первых в России масштабных марафонов стройности',
       'Программы для дома и зала, подход без перегруза',
-    ];
-    const trust = [
-      { text: 'Программы построены вокруг техники и регулярности, а не изнуряющих нагрузок.', meta: 'О подходе' },
-      { text: 'Заниматься можно дома: для большинства программ хватает коврика и собственного веса.', meta: 'Формат занятий' },
-      { text: 'Доступ открывается в личном кабинете, тренировки доступны в удобное время.', meta: 'Как это работает' },
     ];
     const safetySvgs = [
       '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V8a4 4 0 0 1 8 0v2"/><circle cx="12" cy="15" r="1"/></svg>',
@@ -1480,13 +1470,59 @@ function render() {
         '<div class="paywall-hero-copy">' +
           '<h2 class="paywall-hero-title">' + heading + '</h2>' +
           '<p class="paywall-hero-sub">Получите доступ к программам Кати Усмановой, помощнику по питанию и тренировкам, которые подходят под вашу цель.</p>' +
-          '<p class="paywall-hero-orientir">' + orientir + '</p>' +
+          '<p class="paywall-hero-orientir">' +
+            '<span style="width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:rgba(255,255,255,.82);color:var(--primary);flex-shrink:0" aria-hidden="true">' +
+              '<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>' +
+            '</span>' +
+            '<span>' + orientir + '</span>' +
+          '</p>' +
           '<div class="paywall-chips">' +
             '<span class="paywall-chip">Программы</span>' +
             '<span class="paywall-chip">Питание</span>' +
             '<span class="paywall-chip">Под вашу цель</span>' +
           '</div>' +
           '<button type="button" class="paywall-cta" id="paywallTopCta">Выбрать доступ</button>' +
+        '</div>' +
+      '</section>';
+
+    body +=
+      '<section class="paywall-section paywall-proof">' +
+        '<h3 class="paywall-h">С Катей уже тренируются сотни тысяч женщин</h3>' +
+        '<div class="paywall-proof-top">' +
+          '<img class="paywall-proof-photo" src="/assets/quiz/hero/hero.jpg" alt="Екатерина Усманова" loading="lazy" decoding="async" />' +
+          '<div class="paywall-proof-count">' +
+            '<strong>580 000+</strong>' +
+            '<span>женщин занимаются по программам Кати Усмановой</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="paywall-facts">' +
+          facts.map((fact) => (
+            '<span class="paywall-fact">' +
+              '<span class="paywall-fact-mark" aria-hidden="true">' + checkSvg + '</span>' +
+              '<span>' + fact + '</span>' +
+            '</span>'
+          )).join('') +
+        '</div>' +
+        '<div class="paywall-gallery-head">Результаты участниц</div>' +
+        '<p class="paywall-gallery-hint">Реальные фотографии участниц программ Кати Усмановой.</p>' +
+        '<div class="result-programs-carousel">' +
+          '<div class="paywall-gallery" id="paywallGalleryList">' +
+            Array.from({ length: 14 }, (unused, galleryIndex) => {
+              const num = String(galleryIndex + 1).padStart(2, '0');
+              return (
+                '<div class="paywall-gallery-item">' +
+                  '<span class="paywall-gallery-badge">До и после</span>' +
+                  '<img src="/assets/quiz/trust/gallery/student-' + num + '.jpg" alt="Результат участницы" loading="lazy" decoding="async" data-gallery="1" />' +
+                '</div>'
+              );
+            }).join('') +
+          '</div>' +
+          '<button type="button" class="result-programs-arrow is-left" id="paywallGalleryArrowPrev" aria-label="Прокрутить истории влево">' +
+            '<span class="result-programs-arrow-icon" aria-hidden="true"></span>' +
+          '</button>' +
+          '<button type="button" class="result-programs-arrow" id="paywallGalleryArrowNext" aria-label="Прокрутить истории вправо">' +
+            '<span class="result-programs-arrow-icon" aria-hidden="true"></span>' +
+          '</button>' +
         '</div>' +
       '</section>';
 
@@ -1538,58 +1574,6 @@ function render() {
           '<button type="button" class="result-programs-arrow" id="resultProgramsArrowBtn" aria-label="Прокрутить программы вправо">' +
             '<span class="result-programs-arrow-icon" aria-hidden="true"></span>' +
           '</button>' +
-        '</div>' +
-      '</section>';
-
-    body +=
-      '<section class="paywall-section paywall-goal">' +
-        '<h3 class="paywall-h">Ваш ориентир уже рассчитан</h3>' +
-        '<div class="paywall-goal-grid">' +
-          '<div class="paywall-goal-stat is-current">' +
-            '<span class="paywall-goal-cap">Сейчас</span>' +
-            '<span class="paywall-goal-weight">' + currentWeight + '<span>кг</span></span>' +
-            '<img class="paywall-goal-fig" src="' + result.currentImage + '" alt="" aria-hidden="true" loading="lazy" decoding="async" data-paywall-fig="1" />' +
-          '</div>' +
-          '<div class="paywall-goal-stat is-target">' +
-            '<span class="paywall-goal-cap">Цель</span>' +
-            '<span class="paywall-goal-weight">' + targetWeight + '<span>кг</span></span>' +
-            '<img class="paywall-goal-fig" src="' + result.targetImage + '" alt="" aria-hidden="true" loading="lazy" decoding="async" data-paywall-fig="1" />' +
-          '</div>' +
-        '</div>' +
-        '<span class="paywall-goal-line">' + goalLine + '</span>' +
-        '<div class="paywall-goal-progress" aria-hidden="true"><span class="paywall-goal-progress-fill"></span></div>' +
-      '</section>';
-
-    body +=
-      '<section class="paywall-section paywall-proof">' +
-        '<h3 class="paywall-h">С Катей уже тренируются сотни тысяч женщин</h3>' +
-        '<div class="paywall-proof-top">' +
-          '<img class="paywall-proof-photo" src="/assets/quiz/hero/hero.jpg" alt="Екатерина Усманова" loading="lazy" decoding="async" />' +
-          '<div class="paywall-proof-count">' +
-            '<strong>580 000+</strong>' +
-            '<span>женщин занимаются по программам Кати Усмановой</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="paywall-facts">' +
-          facts.map((fact) => (
-            '<span class="paywall-fact">' +
-              '<span class="paywall-fact-mark" aria-hidden="true">' + checkSvg + '</span>' +
-              '<span>' + fact + '</span>' +
-            '</span>'
-          )).join('') +
-        '</div>' +
-        '<div class="paywall-gallery-head">Результаты участниц</div>' +
-        '<p class="paywall-gallery-hint">Реальные фотографии участниц программ Кати Усмановой.</p>' +
-        '<div class="paywall-gallery">' +
-          Array.from({ length: 14 }, (unused, galleryIndex) => {
-            const num = String(galleryIndex + 1).padStart(2, '0');
-            return (
-              '<div class="paywall-gallery-item">' +
-                '<span class="paywall-gallery-badge">До и после</span>' +
-                '<img src="/assets/quiz/trust/gallery/student-' + num + '.jpg" alt="Результат участницы" loading="lazy" decoding="async" data-gallery="1" />' +
-              '</div>'
-            );
-          }).join('') +
         '</div>' +
       '</section>';
 
@@ -1974,18 +1958,57 @@ function render() {
     syncArrows();
   }
 
-  document.querySelectorAll('.paywall-goal-fig[data-paywall-fig]').forEach((img) => {
-    img.addEventListener('error', () => {
-      img.style.display = 'none';
-    });
-  });
-
   document.querySelectorAll('.paywall-gallery-item img[data-gallery]').forEach((img) => {
     img.addEventListener('error', () => {
       const item = img.closest('.paywall-gallery-item');
       if (item) item.style.display = 'none';
     });
   });
+
+  const paywallGalleryList = document.getElementById('paywallGalleryList');
+  const paywallGalleryArrowNext = document.getElementById('paywallGalleryArrowNext');
+  const paywallGalleryArrowPrev = document.getElementById('paywallGalleryArrowPrev');
+  if (paywallGalleryList) {
+    const syncPaywallGalleryArrows = () => {
+      if (!paywallGalleryArrowPrev) return;
+      if (paywallGalleryList.scrollLeft > 8) paywallGalleryArrowPrev.classList.add('is-visible');
+      else paywallGalleryArrowPrev.classList.remove('is-visible');
+    };
+
+    const getPaywallGallerySnapStep = () => {
+      const firstCard = paywallGalleryList.querySelector('.paywall-gallery-item');
+      if (!firstCard) return 0;
+      const styles = getComputedStyle(paywallGalleryList);
+      const gap = Number.parseFloat(styles.columnGap || styles.gap || '0');
+      return firstCard.offsetWidth + (Number.isFinite(gap) ? gap : 0);
+    };
+
+    const scrollPaywallGallery = (direction) => {
+      const step = getPaywallGallerySnapStep();
+      if (step > 0) {
+        const currentIndex = Math.round(paywallGalleryList.scrollLeft / step);
+        const targetIndex = Math.max(0, currentIndex + direction);
+        paywallGalleryList.scrollTo({ left: targetIndex * step, behavior: 'smooth' });
+        setTimeout(syncPaywallGalleryArrows, 260);
+        return;
+      }
+
+      const shift = Math.max(220, Math.round(paywallGalleryList.clientWidth * 0.82));
+      paywallGalleryList.scrollBy({ left: shift * direction, behavior: 'smooth' });
+      setTimeout(syncPaywallGalleryArrows, 240);
+    };
+
+    if (paywallGalleryArrowNext) {
+      paywallGalleryArrowNext.addEventListener('click', () => scrollPaywallGallery(1));
+    }
+
+    if (paywallGalleryArrowPrev) {
+      paywallGalleryArrowPrev.addEventListener('click', () => scrollPaywallGallery(-1));
+    }
+
+    paywallGalleryList.addEventListener('scroll', syncPaywallGalleryArrows, { passive: true });
+    syncPaywallGalleryArrows();
+  }
 
   const paywallTopCta = document.getElementById('paywallTopCta');
   if (paywallTopCta) {

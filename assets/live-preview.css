@@ -2997,9 +2997,11 @@
     .paywall-hero-orientir {
       margin: 0;
       display: inline-flex;
+      align-items: center;
+      gap: 8px;
       align-self: start;
       padding: 9px 14px;
-      border-radius: var(--radius-pill);
+      border-radius: 12px;
       background: var(--primary-soft);
       color: var(--primary-hover);
       font-size: 15px;

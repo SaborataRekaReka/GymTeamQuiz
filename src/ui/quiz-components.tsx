@@ -1020,33 +1020,27 @@ export function PaywallLayout(props: {
   const [selectedTariff, setSelectedTariff] = createSignal<string>('Популярно')
   const [brokenProgramImages, setBrokenProgramImages] = createSignal<Record<string, boolean>>({})
   const [brokenGallery, setBrokenGallery] = createSignal<Record<number, boolean>>({})
+  const [showGalleryLeftArrow, setShowGalleryLeftArrow] = createSignal(false)
   const [isHeroBroken, setIsHeroBroken] = createSignal(false)
   const [isProofBroken, setIsProofBroken] = createSignal(false)
-  const [isCurrentBroken, setIsCurrentBroken] = createSignal(false)
-  const [isTargetBroken, setIsTargetBroken] = createSignal(false)
 
   let tariffsRef: HTMLElement | undefined
   let formRef: HTMLElement | undefined
   let programsListRef: HTMLDivElement | undefined
+  let galleryListRef: HTMLDivElement | undefined
 
   const safeName = props.name && props.name.trim() ? props.name.trim() : ''
   const current = Number.isFinite(props.currentWeight) && props.currentWeight > 0 ? props.currentWeight : 0
   const target = Number.isFinite(props.targetWeight) && props.targetWeight > 0 ? props.targetWeight : current
-  const diff = Math.abs(current - target)
   const isLoss = current > 0 && target < current
   const isGain = current > 0 && target > current
 
   const heading = safeName ? `${safeName}, ваш план готов` : 'Ваш план готов'
   const orientir = isLoss
-    ? `Ваш ориентир: с ${current} до ${target} кг`
+    ? `Похудеть до ${target} кг и сохранить форму`
     : isGain
-      ? `Ваш ориентир: набрать ${diff} кг к комфортной форме`
-      : 'Ваш ориентир: сохранить вес и улучшить форму'
-  const goalLine = isLoss
-    ? `Цель: минус ${diff} кг`
-    : isGain
-      ? `Цель: набрать ${diff} кг к комфортной форме`
-      : 'Фокус: сохранить вес и улучшить форму'
+      ? `Набрать до ${target} кг и сохранить форму`
+      : `Сохранить вес ${target} кг и улучшить форму`
 
   const scrollTo = (element?: HTMLElement) => {
     if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -1059,6 +1053,35 @@ export function PaywallLayout(props: {
     if (!programsListRef) return
     const shift = Math.max(220, Math.round(programsListRef.clientWidth * 0.82))
     programsListRef.scrollBy({ left: shift * direction, behavior: 'smooth' })
+  }
+  const getGallerySnapStep = (): number => {
+    if (!galleryListRef) return 0
+    const firstCard = galleryListRef.querySelector<HTMLElement>('.paywall-gallery-item')
+    if (!firstCard) return 0
+
+    const styles = getComputedStyle(galleryListRef)
+    const gap = Number.parseFloat(styles.columnGap || styles.gap || '0')
+    return firstCard.offsetWidth + (Number.isFinite(gap) ? gap : 0)
+  }
+  const syncGalleryArrows = () => {
+    if (!galleryListRef) return
+    setShowGalleryLeftArrow(galleryListRef.scrollLeft > 8)
+  }
+  const scrollGallery = (direction: -1 | 1) => {
+    if (!galleryListRef) return
+
+    const step = getGallerySnapStep()
+    if (step > 0) {
+      const currentIndex = Math.round(galleryListRef.scrollLeft / step)
+      const targetIndex = Math.max(0, currentIndex + direction)
+      galleryListRef.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
+      setTimeout(syncGalleryArrows, 240)
+      return
+    }
+
+    const shift = Math.max(220, Math.round(galleryListRef.clientWidth * 0.82))
+    galleryListRef.scrollBy({ left: shift * direction, behavior: 'smooth' })
+    setTimeout(syncGalleryArrows, 240)
   }
   const isProgramImageBroken = (id: string) => Boolean(brokenProgramImages()[id])
   const markProgramImageBroken = (id: string) => {
@@ -1090,13 +1113,93 @@ export function PaywallLayout(props: {
             <div class="paywall-hero-copy">
               <h2 class="paywall-hero-title">{heading}</h2>
               <p class="paywall-hero-sub">Получите доступ к программам Кати Усмановой, помощнику по питанию и тренировкам, которые подходят под вашу цель.</p>
-              <p class="paywall-hero-orientir">{orientir}</p>
+              <p class="paywall-hero-orientir">
+                <span
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    display: 'inline-flex',
+                    'align-items': 'center',
+                    'justify-content': 'center',
+                    'border-radius': '999px',
+                    background: 'rgba(255,255,255,0.82)',
+                    color: 'var(--primary)',
+                    'flex-shrink': 0,
+                  }}
+                  aria-hidden="true"
+                >
+                  <svg viewBox="0 0 24 24" style={{ width: '12px', height: '12px', fill: 'none', stroke: 'currentColor', 'stroke-width': 2.1, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }}>
+                    <circle cx="12" cy="12" r="7" />
+                    <circle cx="12" cy="12" r="2.5" />
+                    <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+                  </svg>
+                </span>
+                <span>{orientir}</span>
+              </p>
               <div class="paywall-chips">
                 <span class="paywall-chip">Программы</span>
                 <span class="paywall-chip">Питание</span>
                 <span class="paywall-chip">Под вашу цель</span>
               </div>
               <button type="button" class="paywall-cta" onClick={() => scrollTo(tariffsRef)}>Выбрать доступ</button>
+            </div>
+          </section>
+
+          <section class="paywall-section paywall-proof">
+            <h3 class="paywall-h">С Катей уже тренируются сотни тысяч женщин</h3>
+            <div class="paywall-proof-top">
+              {!isProofBroken() ? (
+                <img class="paywall-proof-photo" src="/assets/quiz/hero/hero.jpg" alt="Екатерина Усманова" loading="lazy" decoding="async" onError={() => setIsProofBroken(true)} />
+              ) : <span class="paywall-proof-photo" aria-hidden="true" />}
+              <div class="paywall-proof-count">
+                <strong>580 000+</strong>
+                <span>женщин занимаются по программам Кати Усмановой</span>
+              </div>
+            </div>
+            <div class="paywall-facts">
+              {PAYWALL_FACTS.map((fact) => (
+                <span class="paywall-fact">
+                  <span class="paywall-fact-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10" /></svg></span>
+                  <span>{fact}</span>
+                </span>
+              ))}
+            </div>
+            <div class="paywall-gallery-head">Результаты участниц</div>
+            <p class="paywall-gallery-hint">Реальные фотографии участниц программ Кати Усмановой.</p>
+            <div class="result-programs-carousel">
+              <div
+                class="paywall-gallery"
+                ref={(element: HTMLDivElement) => {
+                  galleryListRef = element
+                  syncGalleryArrows()
+                }}
+                onScroll={syncGalleryArrows}
+              >
+                {PAYWALL_GALLERY.map((src, index) => (
+                  !isGalleryBroken(index) ? (
+                    <div class="paywall-gallery-item">
+                      <span class="paywall-gallery-badge">До и после</span>
+                      <img src={src} alt="Результат участницы" loading="lazy" decoding="async" onError={() => markGalleryBroken(index)} />
+                    </div>
+                  ) : null
+                ))}
+              </div>
+              <button
+                type="button"
+                class={showGalleryLeftArrow() ? 'result-programs-arrow is-left is-visible' : 'result-programs-arrow is-left'}
+                aria-label="Прокрутить истории влево"
+                onClick={() => scrollGallery(-1)}
+              >
+                <span class="result-programs-arrow-icon" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                class="result-programs-arrow"
+                aria-label="Прокрутить истории вправо"
+                onClick={() => scrollGallery(1)}
+              >
+                <span class="result-programs-arrow-icon" aria-hidden="true" />
+              </button>
             </div>
           </section>
 
@@ -1165,61 +1268,6 @@ export function PaywallLayout(props: {
               <button type="button" class="result-programs-arrow" aria-label="Прокрутить программы вправо" onClick={() => scrollPrograms(1)}>
                 <span class="result-programs-arrow-icon" aria-hidden="true" />
               </button>
-            </div>
-          </section>
-
-          <section class="paywall-section paywall-goal">
-            <h3 class="paywall-h">Ваш ориентир уже рассчитан</h3>
-            <div class="paywall-goal-grid">
-              <div class="paywall-goal-stat is-current">
-                <span class="paywall-goal-cap">Сейчас</span>
-                <span class="paywall-goal-weight">{current}<span>кг</span></span>
-                {!isCurrentBroken() ? (
-                  <img class="paywall-goal-fig" src={props.currentImage} alt="" aria-hidden="true" loading="lazy" decoding="async" onError={() => setIsCurrentBroken(true)} />
-                ) : null}
-              </div>
-              <div class="paywall-goal-stat is-target">
-                <span class="paywall-goal-cap">Цель</span>
-                <span class="paywall-goal-weight">{target}<span>кг</span></span>
-                {!isTargetBroken() ? (
-                  <img class="paywall-goal-fig" src={props.targetImage} alt="" aria-hidden="true" loading="lazy" decoding="async" onError={() => setIsTargetBroken(true)} />
-                ) : null}
-              </div>
-            </div>
-            <span class="paywall-goal-line">{goalLine}</span>
-            <div class="paywall-goal-progress" aria-hidden="true"><span class="paywall-goal-progress-fill" /></div>
-          </section>
-
-          <section class="paywall-section paywall-proof">
-            <h3 class="paywall-h">С Катей уже тренируются сотни тысяч женщин</h3>
-            <div class="paywall-proof-top">
-              {!isProofBroken() ? (
-                <img class="paywall-proof-photo" src="/assets/quiz/hero/hero.jpg" alt="Екатерина Усманова" loading="lazy" decoding="async" onError={() => setIsProofBroken(true)} />
-              ) : <span class="paywall-proof-photo" aria-hidden="true" />}
-              <div class="paywall-proof-count">
-                <strong>580 000+</strong>
-                <span>женщин занимаются по программам Кати Усмановой</span>
-              </div>
-            </div>
-            <div class="paywall-facts">
-              {PAYWALL_FACTS.map((fact) => (
-                <span class="paywall-fact">
-                  <span class="paywall-fact-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10" /></svg></span>
-                  <span>{fact}</span>
-                </span>
-              ))}
-            </div>
-            <div class="paywall-gallery-head">Результаты участниц</div>
-            <p class="paywall-gallery-hint">Реальные фотографии участниц программ Кати Усмановой.</p>
-            <div class="paywall-gallery">
-              {PAYWALL_GALLERY.map((src, index) => (
-                !isGalleryBroken(index) ? (
-                  <div class="paywall-gallery-item">
-                    <span class="paywall-gallery-badge">До и после</span>
-                    <img src={src} alt="Результат участницы" loading="lazy" decoding="async" onError={() => markGalleryBroken(index)} />
-                  </div>
-                ) : null
-              ))}
             </div>
           </section>
 
