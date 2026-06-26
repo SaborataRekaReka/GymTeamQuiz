@@ -1988,7 +1988,7 @@ function render() {
       if (step > 0) {
         const currentIndex = Math.round(paywallGalleryList.scrollLeft / step);
         const targetIndex = Math.max(0, currentIndex + direction);
-        paywallGalleryList.scrollTo({ left: targetIndex * step, behavior: 'smooth' });
+        paywallGalleryList.scrollTo({ left: targetIndex * step, behavior: 'auto' });
         setTimeout(syncPaywallGalleryArrows, 260);
         return;
       }

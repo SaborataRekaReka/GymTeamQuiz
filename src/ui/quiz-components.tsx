@@ -1074,7 +1074,7 @@ export function PaywallLayout(props: {
     if (step > 0) {
       const currentIndex = Math.round(galleryListRef.scrollLeft / step)
       const targetIndex = Math.max(0, currentIndex + direction)
-      galleryListRef.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
+      galleryListRef.scrollTo({ left: targetIndex * step, behavior: 'auto' })
       setTimeout(syncGalleryArrows, 240)
       return
     }
