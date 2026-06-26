@@ -1,6 +1,6 @@
 <template>
   <div class="paywall-getcourse-slot">
-    <button type="button" :style="openButtonStyle" @click="openModal">
+    <button v-if="!hideTrigger" type="button" :style="openButtonStyle" @click="openModal">
       Открыть форму оплаты
     </button>
 
@@ -29,6 +29,7 @@ const props = defineProps<{
   selectedTariffName?: string
   selectedTariffPeriod?: string
   openKey?: number
+  hideTrigger?: boolean
 }>()
 
 const mountRef = ref<HTMLDivElement | null>(null)

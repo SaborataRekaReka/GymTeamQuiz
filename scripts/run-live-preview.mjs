@@ -1865,6 +1865,7 @@ function render() {
     let dragStartY = 0;
     let dragStartScrollLeft = 0;
     let dragActive = false;
+    let dragLastDeltaX = 0;
     let dragNextScrollLeft = 0;
     let dragRafId = null;
 
@@ -1880,7 +1881,8 @@ function render() {
       const step = getSnapStep();
       if (step > 0) {
         const currentIndex = Math.round(programsList.scrollLeft / step);
-        const targetIndex = Math.max(0, currentIndex + direction);
+        const maxIndex = Math.max(0, Math.round(Math.max(0, programsList.scrollWidth - programsList.clientWidth) / step));
+        const targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction));
         programsList.scrollTo({ left: targetIndex * step, behavior: 'smooth' });
         setTimeout(syncArrows, 280);
         return;
@@ -1908,12 +1910,37 @@ function render() {
       dragStartX = event.clientX;
       dragStartY = event.clientY;
       dragStartScrollLeft = programsList.scrollLeft;
+      dragLastDeltaX = 0;
       dragActive = false;
       if (dragRafId !== null) {
         cancelAnimationFrame(dragRafId);
         dragRafId = null;
       }
     });
+
+    const snapProgramsToSlide = (deltaX) => {
+      const step = getSnapStep();
+      if (step <= 0) {
+        syncArrows();
+        return;
+      }
+
+      const currentIndex = Math.round(programsList.scrollLeft / step);
+      const startIndex = Math.round(dragStartScrollLeft / step);
+      const dragThreshold = Math.min(72, step * 0.22);
+      const movedEnough = Math.abs(deltaX) >= dragThreshold;
+      let targetIndex = currentIndex;
+
+      if (movedEnough) {
+        const direction = deltaX < 0 ? 1 : -1;
+        targetIndex = startIndex + direction;
+      }
+
+      const maxIndex = Math.max(0, Math.round(Math.max(0, programsList.scrollWidth - programsList.clientWidth) / step));
+      targetIndex = Math.max(0, Math.min(maxIndex, targetIndex));
+      programsList.scrollTo({ left: targetIndex * step, behavior: 'smooth' });
+      setTimeout(syncArrows, 280);
+    };
 
     const stopDrag = (event) => {
       if (dragPointerId !== event.pointerId) return;
@@ -1931,7 +1958,7 @@ function render() {
       dragPointerId = null;
       dragActive = false;
 
-      syncArrows();
+      snapProgramsToSlide(dragLastDeltaX);
     };
 
     programsList.addEventListener('pointermove', (event) => {
@@ -1955,6 +1982,7 @@ function render() {
       }
 
       event.preventDefault();
+      dragLastDeltaX = deltaX;
       dragNextScrollLeft = dragStartScrollLeft - deltaX;
 
       if (dragRafId !== null) return;
@@ -2000,8 +2028,9 @@ function render() {
       const step = getPaywallGallerySnapStep();
       if (step > 0) {
         const currentIndex = Math.round(paywallGalleryList.scrollLeft / step);
-        const targetIndex = Math.max(0, currentIndex + direction);
-        paywallGalleryList.scrollTo({ left: targetIndex * step, behavior: 'auto' });
+        const maxIndex = Math.max(0, Math.round(Math.max(0, paywallGalleryList.scrollWidth - paywallGalleryList.clientWidth) / step));
+        const targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction));
+        paywallGalleryList.scrollTo({ left: targetIndex * step, behavior: 'smooth' });
         setTimeout(syncPaywallGalleryArrows, 260);
         return;
       }
@@ -2016,6 +2045,7 @@ function render() {
     let galleryDragStartY = 0;
     let galleryDragStartScrollLeft = 0;
     let galleryDragActive = false;
+    let galleryDragLastDeltaX = 0;
     let galleryDragNextScrollLeft = 0;
     let galleryDragRafId = null;
 
@@ -2038,6 +2068,7 @@ function render() {
       galleryDragStartX = event.clientX;
       galleryDragStartY = event.clientY;
       galleryDragStartScrollLeft = paywallGalleryList.scrollLeft;
+      galleryDragLastDeltaX = 0;
       galleryDragActive = false;
 
       if (galleryDragRafId !== null) {
@@ -2045,6 +2076,30 @@ function render() {
         galleryDragRafId = null;
       }
     });
+
+    const snapPaywallGalleryToSlide = (deltaX) => {
+      const step = getPaywallGallerySnapStep();
+      if (step <= 0) {
+        syncPaywallGalleryArrows();
+        return;
+      }
+
+      const currentIndex = Math.round(paywallGalleryList.scrollLeft / step);
+      const startIndex = Math.round(galleryDragStartScrollLeft / step);
+      const dragThreshold = Math.min(72, step * 0.22);
+      const movedEnough = Math.abs(deltaX) >= dragThreshold;
+      let targetIndex = currentIndex;
+
+      if (movedEnough) {
+        const direction = deltaX < 0 ? 1 : -1;
+        targetIndex = startIndex + direction;
+      }
+
+      const maxIndex = Math.max(0, Math.round(Math.max(0, paywallGalleryList.scrollWidth - paywallGalleryList.clientWidth) / step));
+      targetIndex = Math.max(0, Math.min(maxIndex, targetIndex));
+      paywallGalleryList.scrollTo({ left: targetIndex * step, behavior: 'smooth' });
+      setTimeout(syncPaywallGalleryArrows, 280);
+    };
 
     const stopGalleryDrag = (event) => {
       if (galleryDragPointerId !== event.pointerId) return;
@@ -2061,7 +2116,7 @@ function render() {
       paywallGalleryList.classList.remove('is-dragging');
       galleryDragPointerId = null;
       galleryDragActive = false;
-      syncPaywallGalleryArrows();
+      snapPaywallGalleryToSlide(galleryDragLastDeltaX);
     };
 
     paywallGalleryList.addEventListener('pointermove', (event) => {
@@ -2085,6 +2140,7 @@ function render() {
       }
 
       event.preventDefault();
+      galleryDragLastDeltaX = deltaX;
       galleryDragNextScrollLeft = galleryDragStartScrollLeft - deltaX;
 
       if (galleryDragRafId !== null) return;

@@ -151,6 +151,11 @@
               ref="programsListRef"
               class="result-programs-list"
               @scroll="syncProgramsArrows"
+              @dragstart.prevent
+              @pointerdown="onProgramsPointerDown"
+              @pointermove="onProgramsPointerMove"
+              @pointerup="onProgramsPointerEnd"
+              @pointercancel="onProgramsPointerEnd"
             >
               <article v-for="program in programs" :key="program.id" class="result-program" :draggable="false">
                 <div class="result-program-image-wrap" aria-hidden="true">
@@ -272,8 +277,141 @@ function syncProgramsArrows() {
   showProgramsLeftArrow.value = programsListRef.value.scrollLeft > 8
 }
 
+function getProgramsSnapStep(): number {
+  if (!programsListRef.value) return 0
+  const firstCard = programsListRef.value.querySelector<HTMLElement>('.result-program')
+  if (!firstCard) return 0
+  const styles = getComputedStyle(programsListRef.value)
+  const gap = Number.parseFloat(styles.columnGap || styles.gap || '0')
+  return firstCard.offsetWidth + (Number.isFinite(gap) ? gap : 0)
+}
+
+function getProgramsIndexBounds(step: number): number {
+  if (!programsListRef.value || step <= 0) return 0
+  const maxScroll = Math.max(0, programsListRef.value.scrollWidth - programsListRef.value.clientWidth)
+  return Math.max(0, Math.round(maxScroll / step))
+}
+
+const programsDrag = {
+  pointerId: undefined as number | undefined,
+  startX: 0,
+  startY: 0,
+  startScrollLeft: 0,
+  lastDeltaX: 0,
+  active: false,
+  rafId: null as number | null,
+  nextScrollLeft: 0,
+}
+
+function onProgramsPointerDown(event: PointerEvent) {
+  const list = programsListRef.value
+  if (!list) return
+  if (event.pointerType === 'mouse' && event.button !== 0) return
+
+  programsDrag.pointerId = event.pointerId
+  programsDrag.startX = event.clientX
+  programsDrag.startY = event.clientY
+  programsDrag.startScrollLeft = list.scrollLeft
+  programsDrag.lastDeltaX = 0
+  programsDrag.active = false
+
+  if (programsDrag.rafId !== null) {
+    cancelAnimationFrame(programsDrag.rafId)
+    programsDrag.rafId = null
+  }
+}
+
+function onProgramsPointerMove(event: PointerEvent) {
+  const list = programsListRef.value
+  if (!list || programsDrag.pointerId !== event.pointerId) return
+
+  const deltaX = event.clientX - programsDrag.startX
+  const deltaY = event.clientY - programsDrag.startY
+
+  if (!programsDrag.active) {
+    const passedThreshold = Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6
+    if (!passedThreshold) return
+
+    if (Math.abs(deltaX) <= Math.abs(deltaY)) {
+      programsDrag.pointerId = undefined
+      return
+    }
+
+    programsDrag.active = true
+    list.setPointerCapture(event.pointerId)
+    list.classList.add('is-dragging')
+  }
+
+  event.preventDefault()
+  programsDrag.lastDeltaX = deltaX
+  programsDrag.nextScrollLeft = programsDrag.startScrollLeft - deltaX
+
+  if (programsDrag.rafId !== null) return
+  programsDrag.rafId = requestAnimationFrame(() => {
+    programsDrag.rafId = null
+    list.scrollLeft = programsDrag.nextScrollLeft
+    syncProgramsArrows()
+  })
+}
+
+function snapProgramsToSlide(deltaX: number) {
+  const list = programsListRef.value
+  if (!list) return
+  const step = getProgramsSnapStep()
+  if (step <= 0) {
+    syncProgramsArrows()
+    return
+  }
+
+  const currentIndex = Math.round(list.scrollLeft / step)
+  const startIndex = Math.round(programsDrag.startScrollLeft / step)
+  const dragThreshold = Math.min(72, step * 0.22)
+  const movedEnough = Math.abs(deltaX) >= dragThreshold
+  let targetIndex = currentIndex
+
+  if (movedEnough) {
+    const direction = deltaX < 0 ? 1 : -1
+    targetIndex = startIndex + direction
+  }
+
+  const maxIndex = getProgramsIndexBounds(step)
+  targetIndex = Math.max(0, Math.min(maxIndex, targetIndex))
+  list.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
+  setTimeout(syncProgramsArrows, 280)
+}
+
+function onProgramsPointerEnd(event: PointerEvent) {
+  const list = programsListRef.value
+  if (!list || programsDrag.pointerId !== event.pointerId) return
+
+  if (programsDrag.rafId !== null) {
+    cancelAnimationFrame(programsDrag.rafId)
+    programsDrag.rafId = null
+  }
+
+  if (programsDrag.active && list.hasPointerCapture(event.pointerId)) {
+    list.releasePointerCapture(event.pointerId)
+  }
+
+  list.classList.remove('is-dragging')
+  const deltaX = programsDrag.lastDeltaX
+  programsDrag.pointerId = undefined
+  programsDrag.active = false
+
+  snapProgramsToSlide(deltaX)
+}
+
 function scrollPrograms(direction: -1 | 1) {
   if (!programsListRef.value) return
+  const step = getProgramsSnapStep()
+  if (step > 0) {
+    const currentIndex = Math.round(programsListRef.value.scrollLeft / step)
+    const maxIndex = getProgramsIndexBounds(step)
+    const targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction))
+    programsListRef.value.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
+    setTimeout(syncProgramsArrows, 280)
+    return
+  }
   const shift = Math.max(220, Math.round(programsListRef.value.clientWidth * 0.82))
   programsListRef.value.scrollBy({ left: shift * direction, behavior: 'smooth' })
   setTimeout(syncProgramsArrows, 280)

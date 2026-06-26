@@ -184,11 +184,12 @@
           </div>
         </section>
 
-        <section class="paywall-section">
-          <h3 class="paywall-h">Оформление доступа</h3>
-          <p class="paywall-sub">Форма оплаты откроется в модальном окне.</p>
-          <GetCourseForm :selected-tariff-name="selectedTariff" :selected-tariff-period="selectedTariffPeriod" :open-key="formOpenKey" />
-        </section>
+        <GetCourseForm
+          :selected-tariff-name="selectedTariff"
+          :selected-tariff-period="selectedTariffPeriod"
+          :open-key="formOpenKey"
+          hide-trigger
+        />
 
         <section class="paywall-section">
           <h3 class="paywall-h">Оплата и доступ безопасны</h3>

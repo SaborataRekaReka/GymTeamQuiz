@@ -1077,10 +1077,54 @@ export function PaywallLayout(props: {
     setSelectedTariff(name)
     scrollTo(formRef)
   }
+  const getSnapStep = (list: HTMLElement, itemSelector: string): number => {
+    const firstCard = list.querySelector<HTMLElement>(itemSelector)
+    if (!firstCard) return 0
+
+    const styles = getComputedStyle(list)
+    const gap = Number.parseFloat(styles.columnGap || styles.gap || '0')
+    return firstCard.offsetWidth + (Number.isFinite(gap) ? gap : 0)
+  }
+  const getScrollIndexBounds = (list: HTMLElement, step: number): number => {
+    if (step <= 0) return 0
+    const maxScroll = Math.max(0, list.scrollWidth - list.clientWidth)
+    return Math.max(0, Math.round(maxScroll / step))
+  }
+  const getProgramsSnapStep = (): number => (programsListRef ? getSnapStep(programsListRef, '.result-program') : 0)
+  const getGallerySnapStep = (): number => (galleryListRef ? getSnapStep(galleryListRef, '.paywall-gallery-item') : 0)
   const scrollPrograms = (direction: -1 | 1) => {
     if (!programsListRef) return
+    const step = getProgramsSnapStep()
+    if (step > 0) {
+      const currentIndex = Math.round(programsListRef.scrollLeft / step)
+      const maxIndex = getScrollIndexBounds(programsListRef, step)
+      const targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction))
+      programsListRef.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
+      return
+    }
+
     const shift = Math.max(220, Math.round(programsListRef.clientWidth * 0.82))
     programsListRef.scrollBy({ left: shift * direction, behavior: 'smooth' })
+  }
+  const snapProgramsToSlide = (deltaX: number) => {
+    if (!programsListRef) return
+    const step = getProgramsSnapStep()
+    if (step <= 0) return
+
+    const currentIndex = Math.round(programsListRef.scrollLeft / step)
+    const startIndex = Math.round(programsDragStartScrollLeft / step)
+    const dragThreshold = Math.min(72, step * 0.22)
+    const movedEnough = Math.abs(deltaX) >= dragThreshold
+    let targetIndex = currentIndex
+
+    if (movedEnough) {
+      const direction = deltaX < 0 ? 1 : -1
+      targetIndex = startIndex + direction
+    }
+
+    const maxIndex = getScrollIndexBounds(programsListRef, step)
+    targetIndex = Math.max(0, Math.min(maxIndex, targetIndex))
+    programsListRef.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
   }
   const onProgramsPointerDown = (event: PointerEvent) => {
     if (!programsListRef) return
@@ -1141,15 +1185,7 @@ export function PaywallLayout(props: {
     programsListRef.classList.remove('is-dragging')
     programsDragPointerId = undefined
     programsDragActive = false
-  }
-  const getGallerySnapStep = (): number => {
-    if (!galleryListRef) return 0
-    const firstCard = galleryListRef.querySelector<HTMLElement>('.paywall-gallery-item')
-    if (!firstCard) return 0
-
-    const styles = getComputedStyle(galleryListRef)
-    const gap = Number.parseFloat(styles.columnGap || styles.gap || '0')
-    return firstCard.offsetWidth + (Number.isFinite(gap) ? gap : 0)
+    snapProgramsToSlide(event.clientX - programsDragStartX)
   }
   const syncGalleryArrows = () => {
     if (!galleryListRef) return
@@ -1200,6 +1236,30 @@ export function PaywallLayout(props: {
       syncGalleryArrows()
     })
   }
+  const snapGalleryToSlide = (deltaX: number) => {
+    if (!galleryListRef) return
+    const step = getGallerySnapStep()
+    if (step <= 0) {
+      syncGalleryArrows()
+      return
+    }
+
+    const currentIndex = Math.round(galleryListRef.scrollLeft / step)
+    const startIndex = Math.round(galleryDragStartScrollLeft / step)
+    const dragThreshold = Math.min(72, step * 0.22)
+    const movedEnough = Math.abs(deltaX) >= dragThreshold
+    let targetIndex = currentIndex
+
+    if (movedEnough) {
+      const direction = deltaX < 0 ? 1 : -1
+      targetIndex = startIndex + direction
+    }
+
+    const maxIndex = getScrollIndexBounds(galleryListRef, step)
+    targetIndex = Math.max(0, Math.min(maxIndex, targetIndex))
+    galleryListRef.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
+    setTimeout(syncGalleryArrows, 280)
+  }
   const onGalleryPointerEnd = (event: PointerEvent) => {
     if (!galleryListRef || galleryDragPointerId !== event.pointerId) return
 
@@ -1215,7 +1275,7 @@ export function PaywallLayout(props: {
     galleryListRef.classList.remove('is-dragging')
     galleryDragPointerId = undefined
     galleryDragActive = false
-    syncGalleryArrows()
+    snapGalleryToSlide(event.clientX - galleryDragStartX)
   }
   const scrollGallery = (direction: -1 | 1) => {
     if (!galleryListRef) return
@@ -1223,8 +1283,9 @@ export function PaywallLayout(props: {
     const step = getGallerySnapStep()
     if (step > 0) {
       const currentIndex = Math.round(galleryListRef.scrollLeft / step)
-      const targetIndex = Math.max(0, currentIndex + direction)
-      galleryListRef.scrollTo({ left: targetIndex * step, behavior: 'auto' })
+      const maxIndex = getScrollIndexBounds(galleryListRef, step)
+      const targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction))
+      galleryListRef.scrollTo({ left: targetIndex * step, behavior: 'smooth' })
       setTimeout(syncGalleryArrows, 240)
       return
     }

@@ -2281,6 +2281,8 @@ html, body {
 .result-programs-carousel {
   position: relative;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .result-programs-list {
@@ -2310,6 +2312,7 @@ html, body {
   cursor: grabbing;
   user-select: none;
   scroll-behavior: auto;
+  scroll-snap-type: none;
 }
 
 .result-programs-list.is-dragging .result-program {
@@ -2821,6 +2824,8 @@ html, body {
     .paywall {
       display: grid;
       gap: 18px;
+      width: 100%;
+      min-width: 0;
     }
 
     .paywall-section {
@@ -2831,6 +2836,7 @@ html, body {
       padding: 20px 18px;
       display: grid;
       gap: 14px;
+      min-width: 0;
     }
 
     .paywall-h {
@@ -2863,6 +2869,7 @@ html, body {
       grid-template-columns: 1fr;
       gap: 16px;
       padding: 20px 18px;
+      min-width: 0;
     }
 
     .paywall-hero-photo {
@@ -3556,6 +3563,9 @@ html, body {
       cursor: grab;
       user-select: none;
       -webkit-user-select: none;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
     }
 
     .paywall-gallery * {
@@ -3571,6 +3581,7 @@ html, body {
       cursor: grabbing;
       user-select: none;
       scroll-behavior: auto;
+      scroll-snap-type: none;
     }
 
     .paywall-gallery.is-dragging .paywall-gallery-item {
