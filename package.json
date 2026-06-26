@@ -6,9 +6,13 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint:content": "node scripts/check-content-rules.mjs",
-    "check": "npm run typecheck && npm run lint:content"
+    "check": "npm run typecheck && npm run lint:content",
+    "preview:vue": "vite --config chatium/dev/vite.config.ts"
   },
   "devDependencies": {
-    "typescript": "^5.5.4"
+    "@vitejs/plugin-vue": "^5.1.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0",
+    "vue": "^3.4.0"
   }
 }
