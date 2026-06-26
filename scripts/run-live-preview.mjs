@@ -1527,6 +1527,36 @@ function render() {
       '</section>';
 
     body +=
+      '<section class="paywall-section" id="paywallTariffs">' +
+        '<h3 class="paywall-h">Выберите формат доступа</h3>' +
+        '<p class="paywall-sub">Подписку можно отключить в личном кабинете.</p>' +
+        '<div class="paywall-tariffs">' +
+          map.tariffs.map((t) => {
+            const isPopular = t.name === 'Популярно';
+            const isHit = t.name === 'Хит продаж';
+            const isSelected = state.selectedTariff === t.name;
+            return (
+              '<div class="paywall-tariff' + (isPopular ? ' is-popular' : '') + (isSelected ? ' is-selected' : '') + '">' +
+                '<div class="paywall-tariff-head">' +
+                  '<span class="paywall-tariff-name">' + t.name + '</span>' +
+                  (isPopular ? '<span class="paywall-badge is-soft">Рекомендуем</span>' : '') +
+                  (isHit ? '<span class="paywall-badge">Хит продаж</span>' : '') +
+                '</div>' +
+                '<div class="paywall-tariff-price">' +
+                  '<span class="paywall-price-now">' + t.price + ' руб</span>' +
+                  '<span class="paywall-price-old">' + t.old_price + ' руб</span>' +
+                '</div>' +
+                '<div class="paywall-tariff-period">Период: ' + t.period + '</div>' +
+                (t.renewal ? '<div class="paywall-tariff-renewal">' + t.renewal + '</div>' : '') +
+                (tariffNotes[t.name] ? '<div class="paywall-tariff-note">' + tariffNotes[t.name] + '</div>' : '') +
+                '<button type="button" class="paywall-tariff-btn" data-tariff="' + encodeURIComponent(t.name) + '">Выбрать тариф</button>' +
+              '</div>'
+            );
+          }).join('') +
+        '</div>' +
+      '</section>';
+
+    body +=
       '<section class="paywall-section">' +
         '<h3 class="paywall-h">Что входит в доступ</h3>' +
         '<p class="paywall-sub">Внутри программы и инструменты, которые помогут начать по вашему маршруту.</p>' +
@@ -1578,32 +1608,12 @@ function render() {
       '</section>';
 
     body +=
-      '<section class="paywall-section" id="paywallTariffs">' +
-        '<h3 class="paywall-h">Выберите формат доступа</h3>' +
-        '<p class="paywall-sub">Подписку можно отключить в личном кабинете.</p>' +
-        '<div class="paywall-tariffs">' +
-          map.tariffs.map((t) => {
-            const isPopular = t.name === 'Популярно';
-            const isHit = t.name === 'Хит продаж';
-            const isSelected = state.selectedTariff === t.name;
-            return (
-              '<div class="paywall-tariff' + (isPopular ? ' is-popular' : '') + (isSelected ? ' is-selected' : '') + '">' +
-                '<div class="paywall-tariff-head">' +
-                  '<span class="paywall-tariff-name">' + t.name + '</span>' +
-                  (isPopular ? '<span class="paywall-badge is-soft">Рекомендуем</span>' : '') +
-                  (isHit ? '<span class="paywall-badge">Хит продаж</span>' : '') +
-                '</div>' +
-                '<div class="paywall-tariff-price">' +
-                  '<span class="paywall-price-now">' + t.price + ' руб</span>' +
-                  '<span class="paywall-price-old">' + t.old_price + ' руб</span>' +
-                '</div>' +
-                '<div class="paywall-tariff-period">Период: ' + t.period + '</div>' +
-                (t.renewal ? '<div class="paywall-tariff-renewal">' + t.renewal + '</div>' : '') +
-                (tariffNotes[t.name] ? '<div class="paywall-tariff-note">' + tariffNotes[t.name] + '</div>' : '') +
-                '<button type="button" class="paywall-tariff-btn" data-tariff="' + encodeURIComponent(t.name) + '">Выбрать тариф</button>' +
-              '</div>'
-            );
-          }).join('') +
+      '<section class="paywall-section" id="paywallForm">' +
+        '<h3 class="paywall-h">Оформление доступа</h3>' +
+        '<p class="paywall-sub">Заполните форму ниже, чтобы перейти к оплате.</p>' +
+        '<div class="paywall-embed">' +
+          '<span class="paywall-embed-icon" aria-hidden="true">' + embedSvg + '</span>' +
+          '<span>Здесь будет форма оформления заказа</span>' +
         '</div>' +
       '</section>';
 
@@ -1618,16 +1628,6 @@ function render() {
               '<p class="paywall-safe-text">' + item.text + '</p>' +
             '</div>'
           )).join('') +
-        '</div>' +
-      '</section>';
-
-    body +=
-      '<section class="paywall-section" id="paywallForm">' +
-        '<h3 class="paywall-h">Оформление доступа</h3>' +
-        '<p class="paywall-sub">Заполните форму ниже, чтобы перейти к оплате.</p>' +
-        '<div class="paywall-embed">' +
-          '<span class="paywall-embed-icon" aria-hidden="true">' + embedSvg + '</span>' +
-          '<span>Здесь будет форма оформления заказа</span>' +
         '</div>' +
       '</section>';
 

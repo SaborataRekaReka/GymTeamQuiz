@@ -1203,6 +1203,34 @@ export function PaywallLayout(props: {
             </div>
           </section>
 
+          <section class="paywall-section" ref={(element: HTMLElement) => { tariffsRef = element }}>
+            <h3 class="paywall-h">Выберите формат доступа</h3>
+            <p class="paywall-sub">Подписку можно отключить в личном кабинете.</p>
+            <div class="paywall-tariffs">
+              {props.tariffs.map((tariff) => {
+                const isPopular = tariff.name === 'Популярно'
+                const isHit = tariff.name === 'Хит продаж'
+                return (
+                  <div class={`paywall-tariff${isPopular ? ' is-popular' : ''}${selectedTariff() === tariff.name ? ' is-selected' : ''}`}>
+                    <div class="paywall-tariff-head">
+                      <span class="paywall-tariff-name">{tariff.name}</span>
+                      {isPopular ? <span class="paywall-badge is-soft">Рекомендуем</span> : null}
+                      {isHit ? <span class="paywall-badge">Хит продаж</span> : null}
+                    </div>
+                    <div class="paywall-tariff-price">
+                      <span class="paywall-price-now">{tariff.price} руб</span>
+                      <span class="paywall-price-old">{tariff.old_price} руб</span>
+                    </div>
+                    <div class="paywall-tariff-period">Период: {tariff.period}</div>
+                    {tariff.renewal ? <div class="paywall-tariff-renewal">{tariff.renewal}</div> : null}
+                    {PAYWALL_TARIFF_NOTE[tariff.name] ? <div class="paywall-tariff-note">{PAYWALL_TARIFF_NOTE[tariff.name]}</div> : null}
+                    <button type="button" class="paywall-tariff-btn" onClick={() => onSelectTariff(tariff.name)}>Выбрать тариф</button>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+
           <section class="paywall-section">
             <h3 class="paywall-h">Что входит в доступ</h3>
             <p class="paywall-sub">Внутри программы и инструменты, которые помогут начать по вашему маршруту.</p>
@@ -1271,32 +1299,10 @@ export function PaywallLayout(props: {
             </div>
           </section>
 
-          <section class="paywall-section" ref={(element: HTMLElement) => { tariffsRef = element }}>
-            <h3 class="paywall-h">Выберите формат доступа</h3>
-            <p class="paywall-sub">Подписку можно отключить в личном кабинете.</p>
-            <div class="paywall-tariffs">
-              {props.tariffs.map((tariff) => {
-                const isPopular = tariff.name === 'Популярно'
-                const isHit = tariff.name === 'Хит продаж'
-                return (
-                  <div class={`paywall-tariff${isPopular ? ' is-popular' : ''}${selectedTariff() === tariff.name ? ' is-selected' : ''}`}>
-                    <div class="paywall-tariff-head">
-                      <span class="paywall-tariff-name">{tariff.name}</span>
-                      {isPopular ? <span class="paywall-badge is-soft">Рекомендуем</span> : null}
-                      {isHit ? <span class="paywall-badge">Хит продаж</span> : null}
-                    </div>
-                    <div class="paywall-tariff-price">
-                      <span class="paywall-price-now">{tariff.price} руб</span>
-                      <span class="paywall-price-old">{tariff.old_price} руб</span>
-                    </div>
-                    <div class="paywall-tariff-period">Период: {tariff.period}</div>
-                    {tariff.renewal ? <div class="paywall-tariff-renewal">{tariff.renewal}</div> : null}
-                    {PAYWALL_TARIFF_NOTE[tariff.name] ? <div class="paywall-tariff-note">{PAYWALL_TARIFF_NOTE[tariff.name]}</div> : null}
-                    <button type="button" class="paywall-tariff-btn" onClick={() => onSelectTariff(tariff.name)}>Выбрать тариф</button>
-                  </div>
-                )
-              })}
-            </div>
+          <section class="paywall-section" ref={(element: HTMLElement) => { formRef = element }}>
+            <h3 class="paywall-h">Оформление доступа</h3>
+            <p class="paywall-sub">Заполните форму ниже, чтобы перейти к оплате.</p>
+            {props.getCourseEmbedBlock}
           </section>
 
           <section class="paywall-section">
@@ -1310,12 +1316,6 @@ export function PaywallLayout(props: {
                 </div>
               ))}
             </div>
-          </section>
-
-          <section class="paywall-section" ref={(element: HTMLElement) => { formRef = element }}>
-            <h3 class="paywall-h">Оформление доступа</h3>
-            <p class="paywall-sub">Заполните форму ниже, чтобы перейти к оплате.</p>
-            {props.getCourseEmbedBlock}
           </section>
 
           <section class="paywall-section">
