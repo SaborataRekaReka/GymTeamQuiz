@@ -8,6 +8,7 @@
           v-if="mediaVideoSrc"
           class="quiz-trust-video"
           :src="mediaVideoSrc"
+          :poster="mediaVideoSrc.replace(/\.mp4$/, '.webp')"
           autoplay
           muted
           loop
@@ -15,6 +16,16 @@
           preload="metadata"
         />
         <img v-else-if="mediaSrc" class="quiz-trust-photo" :src="mediaSrc" alt="" loading="lazy" decoding="async" aria-hidden="true" />
+        <div v-else-if="beforeAfter" class="quiz-before-after" aria-hidden="true">
+          <figure class="quiz-before-after-item">
+            <img class="quiz-before-after-image" :src="beforeAfter.before" alt="" loading="lazy" decoding="async" />
+            <figcaption class="quiz-before-after-caption">Сейчас</figcaption>
+          </figure>
+          <figure class="quiz-before-after-item is-after">
+            <img class="quiz-before-after-image" :src="beforeAfter.after" alt="" loading="lazy" decoding="async" />
+            <figcaption class="quiz-before-after-caption">Цель</figcaption>
+          </figure>
+        </div>
 
         <h1 v-if="title" class="quiz-title">{{ title }}</h1>
         <p v-if="text && !hasResearchSlides" class="quiz-subtitle">{{ text }}</p>
@@ -73,7 +84,7 @@
         </div>
 
         <div class="quiz-actions">
-          <Button label="Продолжить" @click="onNext" />
+          <Button :label="buttonText ?? 'Продолжить'" @click="onNext" />
         </div>
       </div>
     </div>
@@ -96,6 +107,8 @@ const props = defineProps<{
   benefits?: string[]
   mediaSrc?: string
   mediaVideoSrc?: string
+  beforeAfter?: { before: string; after: string }
+  buttonText?: string
   researchSlides?: ResearchSlide[]
   progressPercent: number
   onNext: () => void

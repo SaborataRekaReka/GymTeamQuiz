@@ -106,19 +106,26 @@ const trustVideoById = {
   trust_soft_training: '/assets/quiz/trust/trust-soft-training.mp4',
 };
 
+const beforeAfterById = {
+  final_loader: {
+    before: '/assets/quiz/before/current_02_soft.png.png',
+    after: '/assets/quiz/before/target_02_toned_fit.png.png',
+  },
+};
+
 const researchSlidesById = {
   research_trust: [
     {
       text: 'Регулярная ходьба и щадящие тренировки помогают сбросить часть веса за несколько недель и заметно прибавляют энергии.',
-      source: 'JAMA, 2019',
+      source: 'Журнал Американской медицинской ассоциации, 2019',
     },
     {
       text: 'Умеренная регулярная физическая активность связана с ростом чувства энергии и снижением усталости по данным мета-анализа.',
-      source: 'Psychological Bulletin, 2006',
+      source: 'Психологический бюллетень, 2006',
     },
     {
       text: 'Самоконтроль питания и привычек улучшает удержание результата по весу и делает программу более устойчивой в реальной жизни.',
-      source: 'J Am Diet Assoc, 2011',
+      source: 'Журнал Американской диетологической ассоциации, 2011',
     },
   ],
 };
@@ -931,6 +938,7 @@ function headerHtml() {
       '<div class="header-progress-row' + (hasBack ? '' : ' is-start') + '">' +
         backControl +
         '<div class="progress">' + segments + '</div>' +
+        '<span class="header-percent">' + Math.round(p) + '%</span>' +
       '</div>' +
     '</div>'
   );
@@ -1045,10 +1053,15 @@ function render() {
   const subtitle = s.subtitle || s.text || '';
   const trustMediaHtml = (s.type === 'trust' || s.type === 'sales_transition')
     ? trustVideoById[s.id]
-      ? '<video class="trust-video" src="' + trustVideoById[s.id] + '" autoplay muted loop playsinline preload="metadata"></video>'
-      : trustMediaById[s.id]
-        ? '<img class="trust-photo" src="' + trustMediaById[s.id] + '" alt="" aria-hidden="true" />'
-        : ''
+      ? '<video class="trust-video" src="' + trustVideoById[s.id] + '" poster="' + trustVideoById[s.id].replace(/\.mp4$/, '.webp') + '" autoplay muted loop playsinline preload="metadata"></video>'
+      : beforeAfterById[s.id]
+        ? '<div class="before-after" aria-hidden="true">' +
+            '<figure class="before-after-item"><img class="before-after-image" src="' + beforeAfterById[s.id].before + '" alt="" /><figcaption class="before-after-caption">Сейчас</figcaption></figure>' +
+            '<figure class="before-after-item is-after"><img class="before-after-image" src="' + beforeAfterById[s.id].after + '" alt="" /><figcaption class="before-after-caption">Цель</figcaption></figure>' +
+          '</div>'
+        : trustMediaById[s.id]
+          ? '<img class="trust-photo" src="' + trustMediaById[s.id] + '" alt="" aria-hidden="true" />'
+          : ''
     : '';
   const researchSlides = s.type === 'trust' && Array.isArray(researchSlidesById[s.id]) ? researchSlidesById[s.id] : [];
   const hasResearchSlides = researchSlides.length > 0;
@@ -1062,7 +1075,7 @@ function render() {
         return (
           '<button class="age-chip ' + (isSel ? 'is-selected' : '') + '" data-opt="' + encodeURIComponent(opt) + '">' +
             '<span class="age-chip-value">' + opt + '</span>' +
-            '<span class="age-chip-unit">лет</span>' +
+            (/[\u0430-\u044f\u0451]/i.test(opt) ? '' : '<span class="age-chip-unit">лет</span>') +
           '</button>'
         );
       }).join('') +

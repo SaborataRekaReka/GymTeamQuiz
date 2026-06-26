@@ -165,6 +165,16 @@
       gap: 12px;
     }
 
+    .header-percent {
+      flex-shrink: 0;
+      min-width: 40px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      font-variant-numeric: tabular-nums;
+    }
+
     .icon-btn, .icon-placeholder {
       width: 40px;
       height: 40px;
@@ -206,6 +216,8 @@
 
     .progress {
       width: 100%;
+      flex: 1;
+      min-width: 0;
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
       align-items: center;
@@ -241,6 +253,26 @@
       color: var(--text-muted);
       font-size: 16px;
       line-height: 23px;
+    }
+
+    .title.is-centered,
+    .subtitle.is-centered {
+      text-align: center;
+    }
+
+    .loader-copy {
+      display: grid;
+      gap: 8px;
+    }
+
+    .loader-copy.is-centered {
+      text-align: center;
+      justify-items: center;
+    }
+
+    .loader-copy.is-centered .subtitle {
+      max-width: 380px;
+      margin-inline: auto;
     }
 
     .hero {
@@ -607,6 +639,48 @@
       height: auto;
       display: block;
       border-radius: 24px;
+    }
+
+    .before-after {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: end;
+      width: 100%;
+      max-width: 360px;
+      margin-inline: auto;
+    }
+
+    .before-after-item {
+      margin: 0;
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+      background: var(--primary-soft);
+      border-radius: 20px;
+      padding: 14px 10px 10px;
+    }
+
+    .before-after-image {
+      width: 100%;
+      height: auto;
+      max-height: 200px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .before-after-caption {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .before-after-item.is-after {
+      background: color-mix(in srgb, var(--primary) 16%, #FFFFFF);
+    }
+
+    .before-after-item.is-after .before-after-caption {
+      color: var(--primary);
     }
 
     .transition-screen .title,

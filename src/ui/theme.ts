@@ -134,6 +134,8 @@ html, body {
 
 .quiz-progress {
   width: 100%;
+  flex: 1;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
@@ -178,6 +180,16 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.quiz-header-percent {
+  flex-shrink: 0;
+  min-width: 40px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .quiz-header-back {
@@ -606,6 +618,48 @@ html, body {
   height: auto;
   display: block;
   border-radius: 24px;
+}
+
+.quiz-before-after {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: end;
+  width: 100%;
+  max-width: 360px;
+  margin-inline: auto;
+}
+
+.quiz-before-after-item {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  background: var(--primary-soft);
+  border-radius: 20px;
+  padding: 14px 10px 10px;
+}
+
+.quiz-before-after-image {
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  object-fit: contain;
+  display: block;
+}
+
+.quiz-before-after-caption {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.quiz-before-after-item.is-after {
+  background: color-mix(in srgb, var(--primary) 16%, #FFFFFF);
+}
+
+.quiz-before-after-item.is-after .quiz-before-after-caption {
+  color: var(--primary);
 }
 
 .quiz-transition-screen .quiz-title,

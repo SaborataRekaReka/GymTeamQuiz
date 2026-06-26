@@ -23,6 +23,8 @@
     :benefits="trustBenefits"
     :media-src="trustMediaSrc"
     :media-video-src="trustVideoSrc"
+    :before-after="trustBeforeAfter"
+    :button-text="trustButtonText"
     :research-slides="researchSlides"
     :progress-percent="progressPercent"
     :on-next="onNext"
@@ -138,19 +140,25 @@ const TRUST_MEDIA_BY_ID: Record<string, string> = {
 const TRUST_VIDEO_BY_ID: Record<string, string> = {
   trust_soft_training: '/assets/quiz/trust/trust-soft-training.mp4',
 }
+const BEFORE_AFTER_BY_ID: Record<string, { before: string; after: string }> = {
+  final_loader: {
+    before: '/assets/quiz/before/current_02_soft.png.png',
+    after: '/assets/quiz/before/target_02_toned_fit.png.png',
+  },
+}
 const RESEARCH_SLIDES_BY_ID: Record<string, Array<{ text: string; source: string }>> = {
   research_trust: [
     {
       text: 'Регулярная ходьба и щадящие тренировки помогают сбросить часть веса за несколько недель и заметно прибавляют энергии.',
-      source: 'JAMA, 2019',
+      source: 'Журнал Американской медицинской ассоциации, 2019',
     },
     {
       text: 'Умеренная регулярная физическая активность связана с ростом чувства энергии и снижением усталости по данным мета-анализа.',
-      source: 'Psychological Bulletin, 2006',
+      source: 'Психологический бюллетень, 2006',
     },
     {
       text: 'Самоконтроль питания и привычек улучшает удержание результата по весу и делает программу более устойчивой в реальной жизни.',
-      source: 'J Am Diet Assoc, 2011',
+      source: 'Журнал Американской диетологической ассоциации, 2011',
     },
   ],
 }
@@ -233,6 +241,10 @@ const trustText = computed(() =>
 const trustBenefits = computed(() => (screen.value.kind === 'salesTransition' ? screen.value.benefits : []))
 const trustMediaSrc = computed(() => TRUST_MEDIA_BY_ID[screen.value.id])
 const trustVideoSrc = computed(() => TRUST_VIDEO_BY_ID[screen.value.id])
+const trustBeforeAfter = computed(() => BEFORE_AFTER_BY_ID[screen.value.id])
+const trustButtonText = computed(() =>
+  screen.value.kind === 'trust' || screen.value.kind === 'salesTransition' ? screen.value.buttonText : undefined,
+)
 const researchSlides = computed(() => RESEARCH_SLIDES_BY_ID[screen.value.id])
 
 const loaderText = computed(() => (screen.value.kind === 'loader' ? screen.value.text : undefined))

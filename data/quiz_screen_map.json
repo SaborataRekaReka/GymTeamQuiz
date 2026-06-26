@@ -33,10 +33,10 @@
         "Набрала больше, чем хотелось бы"
       ],
       "option_icons": [
-        "/assets/quiz/2/1.png",
-        "/assets/quiz/2/2.png",
-        "/assets/quiz/2/3.png",
-        "/assets/quiz/2/4.png"
+        "/assets/quiz/2/1.webp",
+        "/assets/quiz/2/2.webp",
+        "/assets/quiz/2/3.webp",
+        "/assets/quiz/2/4.webp"
       ],
       "multiple": false
     },
@@ -53,10 +53,10 @@
         "Просто здоровое и без боли в спине"
       ],
       "option_icons": [
-        "/assets/quiz/3/1.png",
-        "/assets/quiz/3/2.png",
-        "/assets/quiz/3/3.png",
-        "/assets/quiz/3/4.png"
+        "/assets/quiz/3/1.webp",
+        "/assets/quiz/3/2.webp",
+        "/assets/quiz/3/3.webp",
+        "/assets/quiz/3/4.webp"
       ],
       "multiple": false
     },

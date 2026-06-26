@@ -111,6 +111,7 @@ export function QuizHeader(props: {
         )}
 
         <Progress percent={props.progressPercent} />
+        <span class="quiz-header-percent">{Math.round(props.progressPercent)}%</span>
       </div>
     </div>
   )

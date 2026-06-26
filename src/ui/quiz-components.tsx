@@ -136,7 +136,7 @@ export function QuestionLayout(model: QuestionViewModel) {
                 onClick={() => model.onSelect(option)}
               >
                 <span class="quiz-age-chip-value">{option}</span>
-                <span class="quiz-age-chip-unit">лет</span>
+                {/[а-яё]/i.test(option) ? null : <span class="quiz-age-chip-unit">лет</span>}
               </button>
             ))}
           </div>
@@ -251,6 +251,8 @@ export function TrustLayout(props: {
   benefits?: string[]
   mediaSrc?: string
   mediaVideoSrc?: string
+  beforeAfter?: { before: string; after: string }
+  buttonText?: string
   researchSlides?: Array<{
     text: string
     source: string
@@ -282,12 +284,24 @@ export function TrustLayout(props: {
             <video
               class="quiz-trust-video"
               src={props.mediaVideoSrc}
+              poster={props.mediaVideoSrc.replace(/\.mp4$/, '.webp')}
               autoplay
               muted
               loop
               playsinline
               preload="metadata"
             />
+          ) : props.beforeAfter ? (
+            <div class="quiz-before-after" aria-hidden="true">
+              <figure class="quiz-before-after-item">
+                <img class="quiz-before-after-image" src={props.beforeAfter.before} alt="" loading="lazy" decoding="async" />
+                <figcaption class="quiz-before-after-caption">Сейчас</figcaption>
+              </figure>
+              <figure class="quiz-before-after-item is-after">
+                <img class="quiz-before-after-image" src={props.beforeAfter.after} alt="" loading="lazy" decoding="async" />
+                <figcaption class="quiz-before-after-caption">Цель</figcaption>
+              </figure>
+            </div>
           ) : props.mediaSrc ? <img class="quiz-trust-photo" src={props.mediaSrc} alt="" aria-hidden="true" /> : null}
           {props.title ? <Title text={props.title} /> : null}
           {props.text && !hasResearchSlides ? <Subtitle text={props.text} /> : null}
@@ -344,7 +358,7 @@ export function TrustLayout(props: {
           )}
 
           <div class="quiz-actions">
-            <Button label="Продолжить" onClick={props.onNext} />
+            <Button label={props.buttonText ?? 'Продолжить'} onClick={props.onNext} />
           </div>
         </Stack>
       </div>

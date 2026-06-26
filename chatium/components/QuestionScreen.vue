@@ -23,7 +23,7 @@
           @click="onSelect(option)"
         >
           <span class="quiz-age-chip-value">{{ option }}</span>
-          <span class="quiz-age-chip-unit">лет</span>
+          <span v-if="!/[а-яё]/i.test(option)" class="quiz-age-chip-unit">лет</span>
         </button>
       </div>
 

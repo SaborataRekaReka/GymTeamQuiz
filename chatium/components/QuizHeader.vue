@@ -21,6 +21,7 @@
           <span class="quiz-progress-segment-fill" :style="{ transform: `scaleX(${seg})` }" />
         </span>
       </div>
+      <span class="quiz-header-percent">{{ percentLabel }}</span>
     </div>
   </div>
 </template>
@@ -34,6 +35,8 @@ const props = defineProps<{
 }>()
 
 const SEGMENT_COUNT = 5
+
+const percentLabel = computed(() => `${Math.round(props.progressPercent)}%`)
 
 const segments = computed(() => {
   const filled = (props.progressPercent / 100) * SEGMENT_COUNT
