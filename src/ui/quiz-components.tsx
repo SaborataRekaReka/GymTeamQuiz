@@ -370,8 +370,8 @@ export function LoaderLayout(props: {
           progressPercent={props.progressPercent}
           onBack={props.onBack}
         />
-        {props.title ? <Title text={props.title} /> : null}
-        {props.text ? <Subtitle text={props.text} /> : null}
+        {props.title ? <Title text={props.title} class="is-centered" /> : null}
+        {props.text ? <Subtitle text={props.text} class="is-centered" /> : null}
 
         {hasPlanSteps ? (
           <div class="quiz-plan-loader" aria-label="Сбор персонального плана">

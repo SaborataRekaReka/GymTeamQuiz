@@ -3,8 +3,8 @@
     <div class="quiz-stack">
       <QuizHeader :progress-percent="progressPercent" :on-back="onBack" />
 
-      <h1 v-if="title" class="quiz-title">{{ title }}</h1>
-      <p v-if="text" class="quiz-subtitle">{{ text }}</p>
+      <h1 v-if="title" class="quiz-title is-centered">{{ title }}</h1>
+      <p v-if="text" class="quiz-subtitle is-centered">{{ text }}</p>
 
       <div v-if="hasPlanSteps" class="quiz-plan-loader" aria-label="Сбор персонального плана">
         <div class="quiz-plan-indicator" aria-hidden="true">
