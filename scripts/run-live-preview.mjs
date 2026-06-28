@@ -1865,7 +1865,6 @@ function render() {
     let dragStartY = 0;
     let dragStartScrollLeft = 0;
     let dragActive = false;
-    let dragLastDeltaX = 0;
     let dragNextScrollLeft = 0;
     let dragRafId = null;
 
@@ -1881,8 +1880,7 @@ function render() {
       const step = getSnapStep();
       if (step > 0) {
         const currentIndex = Math.round(programsList.scrollLeft / step);
-        const maxIndex = Math.max(0, Math.round(Math.max(0, programsList.scrollWidth - programsList.clientWidth) / step));
-        const targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction));
+        const targetIndex = Math.max(0, currentIndex + direction);
         programsList.scrollTo({ left: targetIndex * step, behavior: 'smooth' });
         setTimeout(syncArrows, 280);
         return;
@@ -1910,37 +1908,12 @@ function render() {
       dragStartX = event.clientX;
       dragStartY = event.clientY;
       dragStartScrollLeft = programsList.scrollLeft;
-      dragLastDeltaX = 0;
       dragActive = false;
       if (dragRafId !== null) {
         cancelAnimationFrame(dragRafId);
         dragRafId = null;
       }
     });
-
-    const snapProgramsToSlide = (deltaX) => {
-      const step = getSnapStep();
-      if (step <= 0) {
-        syncArrows();
-        return;
-      }
-
-      const currentIndex = Math.round(programsList.scrollLeft / step);
-      const startIndex = Math.round(dragStartScrollLeft / step);
-      const dragThreshold = Math.min(72, step * 0.22);
-      const movedEnough = Math.abs(deltaX) >= dragThreshold;
-      let targetIndex = currentIndex;
-
-      if (movedEnough) {
-        const direction = deltaX < 0 ? 1 : -1;
-        targetIndex = startIndex + direction;
-      }
-
-      const maxIndex = Math.max(0, Math.round(Math.max(0, programsList.scrollWidth - programsList.clientWidth) / step));
-      targetIndex = Math.max(0, Math.min(maxIndex, targetIndex));
-      programsList.scrollTo({ left: targetIndex * step, behavior: 'smooth' });
-      setTimeout(syncArrows, 280);
-    };
 
     const stopDrag = (event) => {
       if (dragPointerId !== event.pointerId) return;
@@ -1958,7 +1931,7 @@ function render() {
       dragPointerId = null;
       dragActive = false;
 
-      snapProgramsToSlide(dragLastDeltaX);
+      syncArrows();
     };
 
     programsList.addEventListener('pointermove', (event) => {
@@ -1982,7 +1955,6 @@ function render() {
       }
 
       event.preventDefault();
-      dragLastDeltaX = deltaX;
       dragNextScrollLeft = dragStartScrollLeft - deltaX;
 
       if (dragRafId !== null) return;
@@ -2028,9 +2000,8 @@ function render() {
       const step = getPaywallGallerySnapStep();
       if (step > 0) {
         const currentIndex = Math.round(paywallGalleryList.scrollLeft / step);
-        const maxIndex = Math.max(0, Math.round(Math.max(0, paywallGalleryList.scrollWidth - paywallGalleryList.clientWidth) / step));
-        const targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction));
-        paywallGalleryList.scrollTo({ left: targetIndex * step, behavior: 'smooth' });
+        const targetIndex = Math.max(0, currentIndex + direction);
+        paywallGalleryList.scrollTo({ left: targetIndex * step, behavior: 'auto' });
         setTimeout(syncPaywallGalleryArrows, 260);
         return;
       }
@@ -2040,15 +2011,6 @@ function render() {
       setTimeout(syncPaywallGalleryArrows, 240);
     };
 
-    let galleryDragPointerId = null;
-    let galleryDragStartX = 0;
-    let galleryDragStartY = 0;
-    let galleryDragStartScrollLeft = 0;
-    let galleryDragActive = false;
-    let galleryDragLastDeltaX = 0;
-    let galleryDragNextScrollLeft = 0;
-    let galleryDragRafId = null;
-
     if (paywallGalleryArrowNext) {
       paywallGalleryArrowNext.addEventListener('click', () => scrollPaywallGallery(1));
     }
@@ -2056,103 +2018,6 @@ function render() {
     if (paywallGalleryArrowPrev) {
       paywallGalleryArrowPrev.addEventListener('click', () => scrollPaywallGallery(-1));
     }
-
-    paywallGalleryList.addEventListener('dragstart', (event) => {
-      event.preventDefault();
-    });
-
-    paywallGalleryList.addEventListener('pointerdown', (event) => {
-      if (event.pointerType === 'mouse' && event.button !== 0) return;
-
-      galleryDragPointerId = event.pointerId;
-      galleryDragStartX = event.clientX;
-      galleryDragStartY = event.clientY;
-      galleryDragStartScrollLeft = paywallGalleryList.scrollLeft;
-      galleryDragLastDeltaX = 0;
-      galleryDragActive = false;
-
-      if (galleryDragRafId !== null) {
-        cancelAnimationFrame(galleryDragRafId);
-        galleryDragRafId = null;
-      }
-    });
-
-    const snapPaywallGalleryToSlide = (deltaX) => {
-      const step = getPaywallGallerySnapStep();
-      if (step <= 0) {
-        syncPaywallGalleryArrows();
-        return;
-      }
-
-      const currentIndex = Math.round(paywallGalleryList.scrollLeft / step);
-      const startIndex = Math.round(galleryDragStartScrollLeft / step);
-      const dragThreshold = Math.min(72, step * 0.22);
-      const movedEnough = Math.abs(deltaX) >= dragThreshold;
-      let targetIndex = currentIndex;
-
-      if (movedEnough) {
-        const direction = deltaX < 0 ? 1 : -1;
-        targetIndex = startIndex + direction;
-      }
-
-      const maxIndex = Math.max(0, Math.round(Math.max(0, paywallGalleryList.scrollWidth - paywallGalleryList.clientWidth) / step));
-      targetIndex = Math.max(0, Math.min(maxIndex, targetIndex));
-      paywallGalleryList.scrollTo({ left: targetIndex * step, behavior: 'smooth' });
-      setTimeout(syncPaywallGalleryArrows, 280);
-    };
-
-    const stopGalleryDrag = (event) => {
-      if (galleryDragPointerId !== event.pointerId) return;
-
-      if (galleryDragRafId !== null) {
-        cancelAnimationFrame(galleryDragRafId);
-        galleryDragRafId = null;
-      }
-
-      if (galleryDragActive && paywallGalleryList.hasPointerCapture(event.pointerId)) {
-        paywallGalleryList.releasePointerCapture(event.pointerId);
-      }
-
-      paywallGalleryList.classList.remove('is-dragging');
-      galleryDragPointerId = null;
-      galleryDragActive = false;
-      snapPaywallGalleryToSlide(galleryDragLastDeltaX);
-    };
-
-    paywallGalleryList.addEventListener('pointermove', (event) => {
-      if (galleryDragPointerId !== event.pointerId) return;
-
-      const deltaX = event.clientX - galleryDragStartX;
-      const deltaY = event.clientY - galleryDragStartY;
-
-      if (!galleryDragActive) {
-        const passedThreshold = Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6;
-        if (!passedThreshold) return;
-
-        if (Math.abs(deltaX) <= Math.abs(deltaY)) {
-          galleryDragPointerId = null;
-          return;
-        }
-
-        galleryDragActive = true;
-        paywallGalleryList.setPointerCapture(event.pointerId);
-        paywallGalleryList.classList.add('is-dragging');
-      }
-
-      event.preventDefault();
-      galleryDragLastDeltaX = deltaX;
-      galleryDragNextScrollLeft = galleryDragStartScrollLeft - deltaX;
-
-      if (galleryDragRafId !== null) return;
-      galleryDragRafId = requestAnimationFrame(() => {
-        galleryDragRafId = null;
-        paywallGalleryList.scrollLeft = galleryDragNextScrollLeft;
-        syncPaywallGalleryArrows();
-      });
-    });
-
-    paywallGalleryList.addEventListener('pointerup', stopGalleryDrag);
-    paywallGalleryList.addEventListener('pointercancel', stopGalleryDrag);
 
     paywallGalleryList.addEventListener('scroll', syncPaywallGalleryArrows, { passive: true });
     syncPaywallGalleryArrows();

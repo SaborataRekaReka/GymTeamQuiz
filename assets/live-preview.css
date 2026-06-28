@@ -139,9 +139,7 @@
       box-shadow: none;
       padding: 0;
       display: grid;
-      grid-template-columns: minmax(0, 1fr);
       gap: 16px;
-      min-width: 0;
     }
 
     .header {
@@ -2285,9 +2283,6 @@
 
     .result-programs-carousel {
       position: relative;
-      min-width: 0;
-      width: 100%;
-      max-width: 100%;
     }
 
     .result-programs-list {
@@ -2316,7 +2311,6 @@
     .result-programs-list.is-dragging {
       cursor: grabbing;
       user-select: none;
-      scroll-snap-type: none;
     }
 
     .result-programs-list.is-dragging .result-program {
@@ -2856,8 +2850,6 @@
     .paywall {
       display: grid;
       gap: 18px;
-      width: 100%;
-      min-width: 0;
     }
 
     .paywall-section {
@@ -2868,7 +2860,6 @@
       padding: 20px 18px;
       display: grid;
       gap: 14px;
-      min-width: 0;
     }
 
     .paywall-h {
@@ -2901,7 +2892,6 @@
       grid-template-columns: 1fr;
       gap: 16px;
       padding: 20px 18px;
-      min-width: 0;
     }
 
     .paywall-hero-photo {
@@ -3591,33 +3581,10 @@
       margin: 0 -2px;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      touch-action: pan-y;
-      cursor: grab;
-      user-select: none;
-      -webkit-user-select: none;
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-    }
-
-    .paywall-gallery * {
-      user-select: none;
-      -webkit-user-select: none;
     }
 
     .paywall-gallery::-webkit-scrollbar {
       display: none;
-    }
-
-    .paywall-gallery.is-dragging {
-      cursor: grabbing;
-      user-select: none;
-      scroll-behavior: auto;
-      scroll-snap-type: none;
-    }
-
-    .paywall-gallery.is-dragging .paywall-gallery-item {
-      pointer-events: none;
     }
 
     .paywall-gallery-item {
